@@ -115,6 +115,8 @@ fib[2] = 1;
 KalpanaLang/
 ├── Main.java            - Main entry point
 ├── KalpanaLang.jar - jar file of interpreter
+├── LICENSE - License file
+├── Demo.kls -  An example of my language, kls means KalpanaLangSource
 └── README.md            - This file
 ```
 
