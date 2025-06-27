@@ -1,0 +1,2537 @@
+
+
+import java.io.*;
+import java.math.*;
+import java.nio.file.*;
+import java.util.*;
+import java.util.regex.*;
+
+
+class LanguageTranslator {
+    public static final Map<String, String> englishToBangla = new HashMap<>();
+    public static final Map<String, String> russianToBangla = new HashMap<>();
+    public static final Map<String, String> hindiToBangla = new HashMap<>();
+    public static final Map<String, String> banglaToBangla = new HashMap<>();
+    
+    static {
+        // BN -> BN
+        banglaToBangla.put("দেখাও", "দেখাও");
+        banglaToBangla.put("পূর্ণসংখ্যা", "পূর্ণসংখ্যা");
+        banglaToBangla.put("ভগ্নাংশ", "ভগ্নাংশ");
+        banglaToBangla.put("বাক্য", "বাক্য");
+        banglaToBangla.put("বুলিয়ান", "বুলিয়ান");
+        banglaToBangla.put("সত্য", "সত্য");
+        banglaToBangla.put("মিথ্যা", "মিথ্যা");
+        banglaToBangla.put("নাও", "নাও");
+        banglaToBangla.put("যদিবা", "যদিবা");
+        banglaToBangla.put("যদি", "যদি");
+        banglaToBangla.put("বা", "বা");
+        banglaToBangla.put("এড়াও", "এড়াও");
+        banglaToBangla.put("ভাঙো", "ভাঙো");
+        banglaToBangla.put("লুপ", "লুপ");
+        banglaToBangla.put("ফাংশন", "ফাংশন");
+        banglaToBangla.put("খালি", "খালি");
+        banglaToBangla.put("ফেরত", "ফেরত");
+        banglaToBangla.put("পূর্ণসংখ্যার_অ্যারে", "পূর্ণসংখ্যার_অ্যারে");
+        banglaToBangla.put("ভগ্নাংশের_অ্যারে", "ভগ্নাংশের_অ্যারে");
+        banglaToBangla.put("বাক্যের_অ্যারে", "বাক্যের_অ্যারে");
+        banglaToBangla.put("অ্যারের_আকার", "অ্যারের_আকার");
+        banglaToBangla.put("বাবল_সর্ট", "বাবল_সর্ট");
+        banglaToBangla.put("কুইক_সর্ট", "কুইক_সর্ট");
+    //    banglaToBangla.put("বাইনারি_সার্চ", "বাইনারি_সার্চ");
+        banglaToBangla.put("বুলিয়ানের_অ্যারে", "বুলিয়ানের_অ্যারে");
+
+        // EN -> BN
+        englishToBangla.put("print", "দেখাও");
+        englishToBangla.put("show", "দেখাও");
+        englishToBangla.put("int", "পূর্ণসংখ্যা");
+        englishToBangla.put("integer", "পূর্ণসংখ্যা");
+        englishToBangla.put("double", "ভগ্নাংশ");
+        englishToBangla.put("float", "ভগ্নাংশ");
+        englishToBangla.put("string", "বাক্য");
+        englishToBangla.put("bool", "বুলিয়ান");
+        englishToBangla.put("boolean", "বুলিয়ান");
+        englishToBangla.put("true", "সত্য");
+        englishToBangla.put("false", "মিথ্যা");
+        englishToBangla.put("input", "নাও");
+        englishToBangla.put("read", "নাও");
+        englishToBangla.put("elseif", "যদিবা");
+        englishToBangla.put("else if", "যদিবা");
+        englishToBangla.put("if", "যদি");
+        englishToBangla.put("else", "বা");
+        englishToBangla.put("continue", "এড়াও");
+        englishToBangla.put("break", "ভাঙো");
+        englishToBangla.put("for", "লুপ");
+        englishToBangla.put("loop", "লুপ");
+        englishToBangla.put("function", "ফাংশন");
+        englishToBangla.put("func", "ফাংশন");
+        englishToBangla.put("void", "খালি");
+        englishToBangla.put("return", "ফেরত");
+        englishToBangla.put("int_array", "পূর্ণসংখ্যার_অ্যারে");
+        englishToBangla.put("float_array", "ভগ্নাংশের_অ্যারে");
+        englishToBangla.put("string_array", "বাক্যের_অ্যারে");
+        englishToBangla.put("array_size", "অ্যারের_আকার");
+        englishToBangla.put("bubble_sort", "বাবল_সর্ট");
+        englishToBangla.put("quick_sort", "কুইক_সর্ট");
+        englishToBangla.put("binary_search", "বাইনারি_সার্চ");
+        englishToBangla.put("boolean_array", "বুলিয়ানের_অ্যারে");
+
+        // Russian to Bangla
+        russianToBangla.put("печать", "দেখাও");
+        russianToBangla.put("показать", "দেখাও");
+        russianToBangla.put("цел", "পূর্ণসংখ্যা");
+        russianToBangla.put("целое", "পূর্ণসংখ্যা");
+        russianToBangla.put("дробь", "ভগ্নাংশ");
+        russianToBangla.put("двойной", "ভগ্নাংশ");
+        russianToBangla.put("строка", "বাক্য");
+        russianToBangla.put("булево", "বুলিয়ান");
+        russianToBangla.put("истина", "সত্য");
+        russianToBangla.put("правда", "সত্য");
+        russianToBangla.put("ложь", "মিথ্যা");
+        russianToBangla.put("ввод", "নাও");
+        russianToBangla.put("читать", "নাও");
+        russianToBangla.put("иначеесли", "যদিবা");
+        russianToBangla.put("иначе если", "যদিবা");
+        russianToBangla.put("если", "যদি");
+        russianToBangla.put("иначе", "বা");
+        russianToBangla.put("продолжить", "এড়াও");
+        russianToBangla.put("прервать", "ভাঙো");
+        russianToBangla.put("для", "লুপ");
+        russianToBangla.put("цикл", "লুপ");
+        russianToBangla.put("функция", "ফাংশন");
+        russianToBangla.put("пустота", "খালি");
+        russianToBangla.put("возврат", "ফেরত");
+        russianToBangla.put("массив_целых", "পূর্ণসংখ্যার_অ্যারে");
+        russianToBangla.put("массив_дробей", "ভগ্নাংশের_অ্যারে");
+        russianToBangla.put("массив_строк", "বাক্যের_অ্যারে");
+        russianToBangla.put("размер_массива", "অ্যারের_আকার");
+        russianToBangla.put("пузырьковая_сортировка", "বাবল_সর্ট");
+        russianToBangla.put("быстрая_сортировка", "কুইক_সর্ট");
+        russianToBangla.put("бинарный_поиск", "বাইনারি_সার্চ");
+        russianToBangla.put("массив_булевых", "বুলিয়ানের_অ্যারে");
+    
+        // Hindi to Bangla
+        hindiToBangla.put("प्रिंट", "দেখাও");
+        hindiToBangla.put("दिखाएं", "দেখাও");
+        hindiToBangla.put("पूर्णांक", "পূর্ণসংখ্যা");
+        hindiToBangla.put("अंक", "পূর্ণসংখ্যা");
+        hindiToBangla.put("दशमलव", "ভগ্নাংশ");
+        hindiToBangla.put("भिन्न", "ভগ্নাংশ");
+        hindiToBangla.put("स्ट्रिंग", "বাক্য");
+        hindiToBangla.put("बूलियन", "বুলিয়ান");
+        hindiToBangla.put("सही", "সত্য");
+        hindiToBangla.put("गलत", "মিথ্যা");
+        hindiToBangla.put("इनपुट", "নাও");
+        hindiToBangla.put("पढ़ें", "নাও");
+        hindiToBangla.put("अन्यथा यदि", "যদিবা");
+        hindiToBangla.put("अगर", "যদি");
+        hindiToBangla.put("और", "বা");
+        hindiToBangla.put("जारी", "এড়াও");
+        hindiToBangla.put("तोड़", "ভাঙো");
+        hindiToBangla.put("लूप", "লুপ");
+        hindiToBangla.put("फंक्शन", "ফাংশন");
+        hindiToBangla.put("खाली", "খালি");
+        hindiToBangla.put("वापसी", "ফেরত");
+        hindiToBangla.put("पूर्णांक_सरणी", "পূর্ণসংখ্যার_অ্যারে");
+        hindiToBangla.put("अंश_सरणी", "ভগ্নাংশের_অ্যারে");
+        hindiToBangla.put("स्ट्रिंग_सरणी", "বাক্যের_অ্যারে");
+        hindiToBangla.put("सरणी_आकार", "অ্যারের_আকার");
+        hindiToBangla.put("बबल_क्रमबद्ध", "বাবল_সর্ট");
+        hindiToBangla.put("त्वरित_क्रमबद्ध", "কুইক_সর্ট");
+        hindiToBangla.put("द्विआधारी_खोज", "বাইনারি_সার্চ");
+        hindiToBangla.put("बूलियन_सरणी", "বুলিয়ানের_অ্যারে");
+    }
+
+    public static String translateToBangla(String sourceCode) {
+        if (sourceCode == null || sourceCode.trim().isEmpty()) {
+            return sourceCode;
+        }
+
+        String translatedCode = sourceCode;
+        String detectedLanguage = detectLanguage(sourceCode);
+        
+        // Translate based on detected language
+        switch (detectedLanguage) {
+            case "russian":
+                translatedCode = translateLanguage(translatedCode, russianToBangla);
+                break;
+            case "english":
+                translatedCode = translateLanguage(translatedCode, englishToBangla);
+                break;
+            case "hindi":
+                translatedCode = translateLanguage(translatedCode, hindiToBangla);
+                break;
+            case "bangla":
+                translatedCode = translateLanguage(translatedCode, banglaToBangla);
+                break;
+            case "mixed":
+                // For mixed code, translate in order: Russian -> English -> Hindi
+                translatedCode = translateLanguage(translatedCode, russianToBangla);
+                translatedCode = translateLanguage(translatedCode, englishToBangla);
+                translatedCode = translateLanguage(translatedCode, hindiToBangla);
+                break;
+        }
+
+        return translatedCode;
+    }
+
+    private static String translateLanguage(String code, Map<String, String> translationMap) {
+        StringBuilder result = new StringBuilder();
+        int currentPos = 0;
+        
+        // Handle string literals first
+        Pattern stringPattern = Pattern.compile("\"(?:\\\\\"|[^\"])*\"");
+        Matcher matcher = stringPattern.matcher(code);
+        
+        while (currentPos < code.length()) {
+            if (matcher.find(currentPos)) {
+                // Translate non-string part
+                String nonString = code.substring(currentPos, matcher.start());
+                result.append(translateNonStringPart(nonString, translationMap));
+                
+                // Keep string literal as-is
+                result.append(matcher.group());
+                currentPos = matcher.end();
+            } else {
+                // Translate remaining code
+                String remaining = code.substring(currentPos);
+                result.append(translateNonStringPart(remaining, translationMap));
+                break;
+            }
+        }
+        
+        return result.toString();
+    }
+
+    private static String translateNonStringPart(String text, Map<String, String> translationMap) {
+        String result = text;
+        
+        // Process longer keywords first
+        List<String> keywords = new ArrayList<>(translationMap.keySet());
+        keywords.sort((a, b) -> b.length() - a.length());
+        
+        for (String keyword : keywords) {
+            String replacement = translationMap.get(keyword);
+            if (translationMap == englishToBangla) {
+                // Case-insensitive for English
+                result = Pattern.compile("\\b" + Pattern.quote(keyword) + "\\b", Pattern.CASE_INSENSITIVE)
+                              .matcher(result)
+                              .replaceAll(replacement);
+            } else {
+                // Exact match for other languages
+                result = result.replace(keyword, replacement);
+            }
+        }
+        
+        return result;
+    }
+
+    public static String detectLanguage(String code) {
+        if (code == null || code.trim().isEmpty()) {
+            return "unknown";
+        }
+        
+        int banglaCount = 0;
+        int englishCount = 0;
+        int russianCount = 0;
+        int hindiCount = 0;
+        
+        // Count Bangla keywords
+        for (String keyword : banglaToBangla.keySet()) {
+            if (code.contains(keyword)) {
+                banglaCount++;
+            }
+        }
+        
+        // Count English keywords
+        for (String keyword : englishToBangla.keySet()) {
+            if (Pattern.compile("\\b" + Pattern.quote(keyword) + "\\b", Pattern.CASE_INSENSITIVE)
+                      .matcher(code)
+                      .find()) {
+                englishCount++;
+            }
+        }
+        
+        // Count Russian keywords
+        for (String keyword : russianToBangla.keySet()) {
+            if (code.contains(keyword)) {
+                russianCount++;
+            }
+        }
+        
+        // Count Hindi keywords
+        for (String keyword : hindiToBangla.keySet()) {
+            if (code.contains(keyword)) {
+                hindiCount++;
+            }
+        }
+        
+        // Decision logic
+        if (banglaCount > 0 && englishCount == 0 && russianCount == 0 && hindiCount == 0) {
+            return "bangla";
+        } else if (russianCount > 0 && englishCount == 0 && hindiCount == 0) {
+            return "russian";
+        } else if (englishCount > 0 && russianCount == 0 && hindiCount == 0) {
+            return "english";
+        } else if (hindiCount > 0 && englishCount == 0 && russianCount == 0) {
+            return "hindi";
+        } else if (banglaCount > 0 || englishCount > 0 || russianCount > 0 || hindiCount > 0) {
+            return "mixed";
+        }
+        
+        return "unknown";
+    }
+}
+
+enum TokenType {
+    // Keywords
+    INTEGER_ARRAY("পূর্ণসংখ্যার_অ্যারে"),
+    FLOAT_ARRAY("ভগ্নাংশের_অ্যারে"),
+    STRING_ARRAY("বাক্যের_অ্যারে"),
+    ARRAY_SIZE("অ্যারের_আকার"),
+    BUBBLE_SORT("বাবল_সর্ট"),
+    QUICK_SORT("কুইক_সর্ট"),
+    BINARY_SEARCH("বাইনারি_সার্চ"),
+    INTEGER("পূর্ণসংখ্যা"),
+    FLOAT("ভগ্নাংশ"),
+    STRING("বাক্য"),
+    BOOLEAN("বুলিয়ান"),
+    PRINT("দেখাও"),
+    TRUE("সত্য"),
+    FALSE("মিথ্যা"),
+    NIL("null"),
+    IF("যদি"),
+    ELSE_IF("যদিবা"),
+    ELSE("বা"),
+    LOOP("লুপ"),
+    BREAK("ভাঙ"),
+    CONTINUE("এড়াও"),
+    INPUT("নাও"),
+    FUNCTION("ফাংশন"),
+    RETURN("ফেরত"),
+    VOID("খালি"),
+
+    BOOLEAN_ARRAY("বুলিয়ানের_অ্যারে"),
+    
+    // Literals
+    IDENTIFIER,
+    INTEGER_LITERAL,
+    FLOAT_LITERAL,
+    STRING_LITERAL,
+    BOOLEAN_LITERAL,
+    
+    // Operators
+    PLUS("+"),
+    MINUS("-"),
+    MULTIPLY("*"),
+    DIVIDE("/"),
+    EQUAL_EQUAL("=="),
+    BANG_EQUAL("!="),
+    BANG("!"),
+    LESS("<"),
+    LESS_EQUAL("<="),
+    GREATER(">"),
+    GREATER_EQUAL(">="),
+    AND("&&"),
+    OR("||"),
+    ASSIGN("="),
+    INCREMENT("++"),
+    DECREMENT("--"),
+    ARROW("→"),
+    MODULO("%"),
+    
+    // Punctuation
+    LEFT_PAREN("("),
+    RIGHT_PAREN(")"),
+    LEFT_BRACE("{"),
+    RIGHT_BRACE("}"),
+    LEFT_BRACKET("["),
+    RIGHT_BRACKET("]"),
+    SEMICOLON(";"),
+    COMMA(","),
+    
+    // Special
+    EOF;
+
+    final String bangla;
+
+    TokenType() {
+        this.bangla = null;
+    }
+
+    TokenType(String bangla) {
+        this.bangla = bangla;
+    }
+}
+
+class Token {
+    TokenType type;
+    TokenType varType;
+    final String lexeme;
+    final Object literal;
+    final int line;  // This should exist
+
+    Token(TokenType type, String lexeme, Object literal, int line) {
+        this.type = type;
+        this.lexeme = lexeme;
+        this.literal = literal;
+        this.line = line;
+        this.varType = null;
+    }
+ 
+
+    @Override
+    public String toString() {
+        return type + " " + lexeme + " " + literal;
+    }
+}
+
+class Lexer {
+    private final String source;
+    private final List<Token> tokens = new Vector<>();
+    private int start = 0;
+    private int current = 0;
+    private int line = 1;
+
+    Lexer(String source) {
+        // Translate the source code to Bangla first
+        String translatedSource = LanguageTranslator.translateToBangla(source);
+        this.source = translatedSource;
+    }
+
+    List<Token> scanTokens() {
+        while (!isAtEnd()) {
+            start = current;
+            scanToken();
+        }
+        tokens.add(new Token(TokenType.EOF, "", null, line));
+        return tokens;
+    }
+
+    private void scanToken() {
+    char c = advance();
+
+    switch (c) {
+        case '(': addToken(TokenType.LEFT_PAREN); break;
+        case ')': addToken(TokenType.RIGHT_PAREN); break;
+        case '{': addToken(TokenType.LEFT_BRACE); break;
+        case '}': addToken(TokenType.RIGHT_BRACE); break;
+        case '[': addToken(TokenType.LEFT_BRACKET); break;
+        case ']': addToken(TokenType.RIGHT_BRACKET); break;
+        case ';': addToken(TokenType.SEMICOLON); break;
+        case ',': addToken(TokenType.COMMA); break;
+        case '+':
+            if (match('+')) {
+                addToken(TokenType.INCREMENT);
+            } else {
+                addToken(TokenType.PLUS);
+            }
+            break;
+        case '-':
+            if (match('-')) {
+                addToken(TokenType.DECREMENT);
+            } else if (peek() == '>') {
+                advance(); // consume the '>'
+                addToken(TokenType.ARROW);
+            } else {
+                addToken(TokenType.MINUS);
+            }
+            break;
+        case '*': addToken(TokenType.MULTIPLY); break;
+        case '%': addToken(TokenType.MODULO); break;
+        case '/': 
+            if (match('/')) {
+                while (peek() != '\n' && !isAtEnd()) advance();
+            } else {
+                addToken(TokenType.DIVIDE);
+            }
+            break;
+        case '!':
+            addToken(match('=') ? TokenType.BANG_EQUAL : TokenType.BANG);
+            break;
+        case '=':
+            addToken(match('=') ? TokenType.EQUAL_EQUAL : TokenType.ASSIGN);
+            break;
+        case '<':
+            addToken(match('=') ? TokenType.LESS_EQUAL : TokenType.LESS);
+            break;
+        case '>':
+            addToken(match('=') ? TokenType.GREATER_EQUAL : TokenType.GREATER);
+            break;
+        case '&':
+            if (match('&')) {
+                addToken(TokenType.AND);
+            }
+            break;
+        case '|':
+            if (match('|')) {
+                addToken(TokenType.OR);
+            }
+            break;
+        case ' ':
+        case '\r':
+        case '\t':
+            break;
+        case '\n':
+            line++;
+            break;
+        case '"': string(); break;
+        default:
+            // Handle Unicode arrow character (→)
+            if (c == '→') {
+                addToken(TokenType.ARROW);
+            } else if (isDigit(c)) {
+                number();
+            } else if (isAlpha(c)) {
+                identifier();
+            } else {
+                throw new RuntimeException("Unexpected character '" + c + "' at line " + line);
+            }
+            break;
+    }
+}
+
+    private void identifier() {
+        while (isAlphaNumeric(peek())) advance();
+
+        String text = source.substring(start, current);
+        
+        for (TokenType type : TokenType.values()) {
+            if (type.bangla != null && type.bangla.equals(text)) {
+                addToken(type);
+                return;
+            }
+        }
+
+        addToken(TokenType.IDENTIFIER);
+    }
+
+private void number() {
+    while (isDigit(peek())) advance();
+
+    if (peek() == '.' && isDigit(peekNext())) {
+        advance();
+        while (isDigit(peek())) advance();
+        try {
+            addToken(TokenType.FLOAT_LITERAL, new BigDecimal(source.substring(start, current)));
+        } catch (NumberFormatException e) {
+            throw new RuntimeException("Invalid number format at line " + line);
+        }
+    } else {
+        try {
+            addToken(TokenType.INTEGER_LITERAL, new BigDecimal(source.substring(start, current)));
+        } catch (NumberFormatException e) {
+            throw new RuntimeException("Invalid number format at line " + line);
+        }
+    }
+}
+
+private void string() {
+    StringBuilder value = new StringBuilder();
+    
+    while (peek() != '"' && !isAtEnd()) {
+        if (peek() == '\n') line++;
+        
+        if (peek() == '\\') {
+            advance(); // consume the backslash
+            char escapeChar = advance();
+            switch (escapeChar) {
+                case '"': value.append('"'); break;
+                case '\\': value.append('\\'); break;
+                case '/': value.append('/'); break;
+                case 'b': value.append('\b'); break;
+                case 'f': value.append('\f'); break;
+                case 'n': value.append('\n'); break;
+                case 'r': value.append('\r'); break;
+                case 't': value.append('\t'); break;
+                case 'u':
+                    // Unicode escape sequence
+                    if (current + 4 > source.length()) {
+                        throw new RuntimeException("Incomplete Unicode escape sequence at line " + line);
+                    }
+                    String hex = source.substring(current, current + 4);
+                    try {
+                        int codePoint = Integer.parseInt(hex, 16);
+                        value.append((char)codePoint);
+                        current += 4;
+                    } catch (NumberFormatException e) {
+                        throw new RuntimeException("Invalid Unicode escape sequence at line " + line);
+                    }
+                    break;
+                default:
+                    throw new RuntimeException("Invalid escape sequence \\" + escapeChar + " at line " + line);
+            }
+        } else {
+            value.append(advance());
+        }
+    }
+
+    if (isAtEnd()) {
+        throw new RuntimeException("Unterminated string at line " + line);
+    }
+
+    advance(); // consume the closing quote
+    addToken(TokenType.STRING_LITERAL, value.toString());
+}
+    private boolean match(char expected) {
+        if (isAtEnd()) return false;
+        if (source.charAt(current) != expected) return false;
+        current++;
+        return true;
+    }
+
+    private char peek() {
+        if (isAtEnd()) return '\0';
+        return source.charAt(current);
+    }
+
+    private char peekNext() {
+        if (current + 1 >= source.length()) return '\0';
+        return source.charAt(current + 1);
+    }
+
+    private boolean isAlpha(char c) {
+        return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_' || 
+               Character.UnicodeBlock.of(c) == Character.UnicodeBlock.BENGALI;
+    }
+
+    private boolean isAlphaNumeric(char c) {
+        return isAlpha(c) || isDigit(c);
+    }
+
+    private boolean isDigit(char c) {
+        return c >= '0' && c <= '9';
+    }
+
+    private boolean isAtEnd() {
+        return current >= source.length();
+    }
+
+    private char advance() {
+        return source.charAt(current++);
+    }
+
+    private void addToken(TokenType type) {
+        addToken(type, null);
+    }
+
+    private void addToken(TokenType type, Object literal) {
+        String text = source.substring(start, current);
+        tokens.add(new Token(type, text, literal, line));
+    }
+}
+
+interface Expr {
+    <R> R accept(ExprVisitor<R> visitor);
+
+}
+
+interface ExprVisitor<R> {
+    R visitBinaryExpr(Binary expr);
+    R visitGroupingExpr(Grouping expr);
+    R visitLiteralExpr(Literal expr);
+    R visitUnaryExpr(Unary expr);
+    R visitVariableExpr(Variable expr);
+    R visitArrayExpr(Array expr);
+    R visitArrayAccessExpr(ArrayAccess expr);
+    R visitArrayAssignmentExpr(ArrayAssignment expr);
+    R visitArraySizeExpr(ArraySize expr);
+    R visitCallExpr(Call expr);
+
+}
+
+record Binary(Expr left, Token operator, Expr right) implements Expr {
+    @Override public <R> R accept(ExprVisitor<R> visitor) {
+        return visitor.visitBinaryExpr(this);
+    }
+}
+
+record Grouping(Expr expression) implements Expr {
+    @Override public <R> R accept(ExprVisitor<R> visitor) {
+        return visitor.visitGroupingExpr(this);
+    }
+}
+
+record Literal(Object value) implements Expr {
+    @Override public <R> R accept(ExprVisitor<R> visitor) {
+        return visitor.visitLiteralExpr(this);
+    }
+}
+
+record Unary(Token operator, Expr right) implements Expr {
+    @Override public <R> R accept(ExprVisitor<R> visitor) {
+        return visitor.visitUnaryExpr(this);
+    }
+}
+
+record Variable(Token name) implements Expr {
+    @Override public <R> R accept(ExprVisitor<R> visitor) {
+        return visitor.visitVariableExpr(this);
+    }
+}
+
+record Array(Token name, Expr size, List<Expr> initialValues) implements Expr {
+    @Override public <R> R accept(ExprVisitor<R> visitor) {
+        return visitor.visitArrayExpr(this);
+    }
+}
+
+record ArrayAccess(Expr array, Expr index) implements Expr {
+    @Override public <R> R accept(ExprVisitor<R> visitor) {
+        return visitor.visitArrayAccessExpr(this);
+    }
+}
+
+record ArrayAssignment(Expr array, Expr index, Expr value) implements Expr {
+    @Override public <R> R accept(ExprVisitor<R> visitor) {
+        return visitor.visitArrayAssignmentExpr(this);
+    }
+}
+record ArraySize(Expr array) implements Expr {
+    @Override public <R> R accept(ExprVisitor<R> visitor) {
+        return visitor.visitArraySizeExpr(this);
+    }
+}
+record Call(Expr callee, List<Expr> arguments) implements Expr {
+    @Override public <R> R accept(ExprVisitor<R> visitor) {
+        return visitor.visitCallExpr(this);
+    }
+}
+
+interface Stmt {
+    <R> R accept(StmtVisitor<R> visitor);
+}
+
+interface StmtVisitor<R> {
+    R visitBlockStmt(Block stmt);
+    R visitExpressionStmt(Expression stmt);
+    R visitIfStmt(If stmt);
+    R visitPrintStmt(Print stmt);
+    R visitVarStmt(Var stmt);
+    R visitWhileStmt(While stmt);
+    R visitBreakStmt(Break stmt);
+    R visitContinueStmt(Continue stmt);
+    R visitArrayStmt(ArrayStmt stmt);
+    R visitSortStmt(SortStmt stmt);
+    R visitSearchStmt(SearchStmt stmt);
+    R visitInputStmt(Input stmt);
+    R visitFunctionStmt(Function stmt);
+    R visitReturnStmt(Return stmt);
+}
+
+record Block(List<Stmt> statements) implements Stmt {
+    @Override public <R> R accept(StmtVisitor<R> visitor) {
+        return visitor.visitBlockStmt(this);
+    }
+}
+
+record Break() implements Stmt {
+    @Override public <R> R accept(StmtVisitor<R> visitor) {
+        return visitor.visitBreakStmt(this);
+    }
+}
+
+record Expression(Expr expression) implements Stmt {
+    @Override public <R> R accept(StmtVisitor<R> visitor) {
+        return visitor.visitExpressionStmt(this);
+    }
+}
+
+record If(Expr condition, Stmt thenBranch, List<ElseIf> elseIfBranches, Stmt elseBranch) implements Stmt {
+    @Override public <R> R accept(StmtVisitor<R> visitor) {
+        return visitor.visitIfStmt(this);
+    }
+}
+
+record ElseIf(Expr condition, Stmt statement) {}
+
+record Print(Expr expression) implements Stmt {
+    @Override public <R> R accept(StmtVisitor<R> visitor) {
+        return visitor.visitPrintStmt(this);
+    }
+}
+
+record Var(Token name, Expr initializer) implements Stmt {
+    @Override public <R> R accept(StmtVisitor<R> visitor) {
+        return visitor.visitVarStmt(this);
+    }
+    public TokenType type() {
+        return name.type;
+    }
+}
+
+record While(Expr condition, Stmt body, Expr increment) implements Stmt {
+    @Override public <R> R accept(StmtVisitor<R> visitor) {
+        return visitor.visitWhileStmt(this);
+    }
+}
+
+record Continue() implements Stmt {
+    @Override public <R> R accept(StmtVisitor<R> visitor) {
+        return visitor.visitContinueStmt(this);
+    }
+}
+
+record ArrayStmt(Token name, TokenType type, Expr size, List<Expr> initialValues) implements Stmt {
+    @Override public <R> R accept(StmtVisitor<R> visitor) {
+        return visitor.visitArrayStmt(this);
+    }
+}
+
+record SortStmt(Expr array, String sortType) implements Stmt {
+    @Override public <R> R accept(StmtVisitor<R> visitor) {
+        return visitor.visitSortStmt(this);
+    }
+}
+
+record SearchStmt(Expr array, Expr key) implements Stmt {
+    @Override public <R> R accept(StmtVisitor<R> visitor) {
+        return visitor.visitSearchStmt(this);
+    }
+}
+record Input(TokenType expectedType, Token variable) implements Stmt {
+    @Override public <R> R accept(StmtVisitor<R> visitor) {
+        return visitor.visitInputStmt(this);
+    }
+}
+record Function(Token name, Token returnType, List<Token> parameters, List<Stmt> body) implements Stmt {
+    @Override public <R> R accept(StmtVisitor<R> visitor) {
+        return visitor.visitFunctionStmt(this);
+    }
+}
+
+record Return(Token keyword, Expr value) implements Stmt {
+    @Override public <R> R accept(StmtVisitor<R> visitor) {
+        return visitor.visitReturnStmt(this);
+    }
+}
+
+class Parser {
+    private final List<Token> tokens;
+    private int current = 0;
+    private boolean hadError = false;
+
+    Parser(List<Token> tokens) {
+        this.tokens = tokens;
+    }
+
+    List<Stmt> parse() {
+        List<Stmt> statements = new Vector<>();
+        while (!isAtEnd()) {
+            Stmt stmt = declaration();
+            if (stmt != null) statements.add(stmt);
+        }
+        
+        if (hadError) {
+            System.exit(1);
+        }
+        
+        return statements;
+    }
+
+    private Stmt declaration() {
+        try {
+            if (match(TokenType.INTEGER, TokenType.FLOAT, TokenType.STRING, TokenType.BOOLEAN)) {
+                return varDeclaration();
+            }
+            if (match(TokenType.FUNCTION)) {
+                return functionDeclaration();
+            }
+            if (match(TokenType.INTEGER_ARRAY, TokenType.FLOAT_ARRAY, TokenType.STRING_ARRAY, TokenType.BOOLEAN_ARRAY)) {
+                return arrayDeclaration();
+            }
+            return statement();
+        } catch (RuntimeException error) {
+            System.err.println("Parse error: " + error.getMessage());
+            hadError = true;
+            synchronize();
+            return null;
+        }
+    }
+
+private Stmt functionDeclaration() {
+    // Parse return type (either VOID or a type)
+    Token returnType;
+    if (match(TokenType.VOID)) {
+        returnType = previous();
+        returnType.type = TokenType.VOID;
+    } else if (match(TokenType.INTEGER, TokenType.FLOAT, TokenType.STRING, TokenType.BOOLEAN)) {
+        returnType = previous();
+    } else {
+        throw new RuntimeException("Expect return type after 'ফাংশন'");
+    }
+
+    // Parse function name
+    Token name = consume(TokenType.IDENTIFIER, "Expect function name.");
+    
+    // Parse parameters
+    consume(TokenType.LEFT_PAREN, "Expect '(' after function name.");
+    List<Token> parameters = new Vector<>();
+    if (!check(TokenType.RIGHT_PAREN)) {
+        do {
+            if (parameters.size() >= 255) {
+                throw new RuntimeException("Can't have more than 255 parameters.");
+            }
+
+            if (match(TokenType.INTEGER, TokenType.FLOAT, TokenType.STRING, TokenType.BOOLEAN)) {
+                Token type = previous();
+                Token param = consume(TokenType.IDENTIFIER, "Expect parameter name.");
+                param.type = type.type;
+                parameters.add(param);
+            } else {
+                throw new RuntimeException("Expect parameter type");
+            }
+        } while (match(TokenType.COMMA));
+    }
+    consume(TokenType.RIGHT_PAREN, "Expect ')' after parameters.");
+
+    // Parse function body
+    consume(TokenType.LEFT_BRACE, "Expect '{' before function body.");
+    List<Stmt> body = block();
+    
+    return new Function(name, returnType, parameters, body);
+}
+
+
+    private Stmt arrayDeclaration() {
+        Token type = previous();
+        Token name = consume(TokenType.IDENTIFIER, "Expect array name.");
+        name.type = type.type;
+        
+        Expr size = null;
+        List<Expr> initialValues = new Vector<>();
+        
+        // Handle array size if specified
+        if (match(TokenType.LEFT_BRACKET)) {
+            if (!check(TokenType.RIGHT_BRACKET)) {
+                size = expression();
+            }
+            consume(TokenType.RIGHT_BRACKET, "Expect ']' after array size.");
+        }
+        
+        // Handle array initialization
+        if (match(TokenType.ARROW)) {
+            consume(TokenType.LEFT_BRACE, "Expect '{' after '→'.");
+            if (!check(TokenType.RIGHT_BRACE)) {
+                do {
+                    initialValues.add(expression());
+                } while (match(TokenType.COMMA));
+            }
+            consume(TokenType.RIGHT_BRACE, "Expect '}' after array initializers.");
+        }
+        
+        consume(TokenType.SEMICOLON, "Expect ';' after array declaration.");
+        return new ArrayStmt(name, type.type, size, initialValues);
+    }
+
+    private Stmt varDeclaration() {
+        Token type = previous();
+        Token name = consume(TokenType.IDENTIFIER, "Expect variable name.");
+        name.type = type.type;
+        Expr initializer = null;
+        if (match(TokenType.ASSIGN)) {
+            initializer = expression();
+        }
+        consume(TokenType.SEMICOLON, "Expect ';' after variable declaration.");
+        return new Var(name, initializer);
+    }
+
+    private Stmt inputStatement() {
+        consume(TokenType.LEFT_PAREN, "Expect '(' after 'নাও'.");
+        
+        // First argument is the expected type
+        TokenType expectedType = null;
+        if (match(TokenType.INTEGER)) {
+            expectedType = TokenType.INTEGER;
+        } else if (match(TokenType.FLOAT)) {
+            expectedType = TokenType.FLOAT;
+        } else if (match(TokenType.STRING)) {
+            expectedType = TokenType.STRING;
+        } else if (match(TokenType.BOOLEAN)) {
+            expectedType = TokenType.BOOLEAN;
+        } else {
+            throw new RuntimeException("Expect type (পূর্ণসংখ্যা, ভগ্নাংশ, বাক্য, or বুলিয়ান) after 'নাও'");
+        }
+        
+        consume(TokenType.COMMA, "Expect ',' after type");
+        
+        // Second argument is the variable name
+        Token variable = consume(TokenType.IDENTIFIER, "Expect variable name");
+        variable.type = expectedType;  // Set the type on the token
+        
+        consume(TokenType.RIGHT_PAREN, "Expect ')' after input arguments");
+        consume(TokenType.SEMICOLON, "Expect ';' after statement");
+        
+        return new Input(expectedType, variable);
+    }
+    private Stmt statement() {
+        if (match(TokenType.IF)) return ifStatement();
+        if (match(TokenType.PRINT)) return printStatement();
+        if (match(TokenType.LEFT_BRACE)) return new Block(block());
+        if (match(TokenType.LOOP)) return loopStatement(); 
+        if (match(TokenType.BREAK)) return breakStatement(); 
+        if (match(TokenType.CONTINUE)) return continueStatement();
+        if (match(TokenType.BUBBLE_SORT)) return sortStatement("bubble");
+        if (match(TokenType.QUICK_SORT)) return sortStatement("quick");
+        if (match(TokenType.BINARY_SEARCH)) return searchStatement();
+       if (match(TokenType.INPUT)) return inputStatement();
+       if (match(TokenType.RETURN)) return returnStatement();
+        if (peek().type == TokenType.LEFT_PAREN) {
+            throw new RuntimeException("Standalone condition without 'যদি' keyword");
+        }
+        
+        if (match(TokenType.ELSE_IF)) {
+            throw new RuntimeException("'যদিবা' (else-if) found without preceding 'যদি' (if) statement");
+        }
+        if (match(TokenType.ELSE)) {
+            throw new RuntimeException("'বা' (else) found without preceding 'যদি' (if) statement");
+        }
+        
+        return expressionStatement();
+    }
+
+    private Stmt sortStatement(String sortType) {
+        consume(TokenType.LEFT_PAREN, "Expect '(' after sort function");
+        Expr array = expression();
+        consume(TokenType.RIGHT_PAREN, "Expect ')' after array expression");
+        consume(TokenType.SEMICOLON, "Expect ';' after statement");
+        return new SortStmt(array, sortType);
+    }
+    
+    private Stmt searchStatement() {
+        consume(TokenType.LEFT_PAREN, "Expect '(' after binary search function");
+        Expr array = expression();
+        consume(TokenType.COMMA, "Expect ',' after array expression");
+        Expr key = expression();
+        consume(TokenType.RIGHT_PAREN, "Expect ')' after key expression");
+        consume(TokenType.SEMICOLON, "Expect ';' after statement");
+        return new SearchStmt(array, key);
+    }
+
+    private Stmt breakStatement() {
+        consume(TokenType.SEMICOLON, "Expect ';' after 'ভাঙ'.");
+        return new Break();
+    }
+    
+    private Stmt continueStatement() {
+        consume(TokenType.SEMICOLON, "Expect ';' after 'এড়াও'.");
+        return new Continue();
+    }
+    
+    private Stmt loopStatement() {
+        consume(TokenType.LEFT_PAREN, "Expect '(' after 'লুপ'.");
+        
+        boolean isForLoop = false;
+        int savedPosition = current;
+        
+        while (!check(TokenType.RIGHT_PAREN) && !isAtEnd()) {
+            if (match(TokenType.SEMICOLON)) {
+                isForLoop = true;
+                break;
+            }
+            advance();
+        }
+        
+        current = savedPosition;
+        
+        if (isForLoop) {
+            return forLoop();
+        } else {
+            return whileLoop();
+        }
+    }
+
+    private Stmt forLoop() {
+        Stmt initializer;
+        if (match(TokenType.SEMICOLON)) {
+            initializer = null;
+        } else if (match(TokenType.INTEGER, TokenType.FLOAT, TokenType.STRING, TokenType.BOOLEAN)) {
+            initializer = varDeclaration();
+        } else {
+            initializer = expressionStatement();
+        }
+        
+        Expr condition = null;
+        if (!check(TokenType.SEMICOLON)) {
+            condition = expression();
+        }
+        consume(TokenType.SEMICOLON, "Expect ';' after loop condition.");
+        
+        Expr increment = null;
+        if (!check(TokenType.RIGHT_PAREN)) {
+            increment = expression();
+        }
+        consume(TokenType.RIGHT_PAREN, "Expect ')' after loop clauses.");
+        
+        Stmt body = statement();
+        
+        Stmt whileLoop = new While(condition != null ? condition : new Literal(true), body, increment);
+        
+        if (initializer != null) {
+            return new Block(Arrays.asList(initializer, whileLoop));
+        }
+        
+        return whileLoop;
+    }
+
+    private Stmt whileLoop() {
+        Expr condition = expression();
+        consume(TokenType.RIGHT_PAREN, "Expect ')' after condition.");
+        Stmt body = statement();
+        
+        return new While(condition, body, null);
+    }
+
+    private Stmt ifStatement() {
+        consume(TokenType.LEFT_PAREN, "Expect '(' after 'যদি'.");
+        Expr condition = expression();
+        consume(TokenType.RIGHT_PAREN, "Expect ')' after if condition.");
+        
+        Stmt thenBranch = statement();
+        
+        List<ElseIf> elseIfBranches = new Vector<>();
+        while (match(TokenType.ELSE_IF)) {
+            consume(TokenType.LEFT_PAREN, "Expect '(' after 'যদিবা'.");
+            Expr elseIfCondition = expression();
+            consume(TokenType.RIGHT_PAREN, "Expect ')' after else-if condition.");
+            Stmt elseIfStatement = statement();
+            elseIfBranches.add(new ElseIf(elseIfCondition, elseIfStatement));
+        }
+        
+        Stmt elseBranch = null;
+        if (match(TokenType.ELSE)) {
+            elseBranch = statement();
+        }
+        
+        return new If(condition, thenBranch, elseIfBranches, elseBranch);
+    }
+
+    private List<Stmt> block() {
+        List<Stmt> statements = new Vector<>();
+        
+        while (!check(TokenType.RIGHT_BRACE) && !isAtEnd()) {
+            Stmt stmt = declaration();
+            if (stmt != null) statements.add(stmt);
+        }
+        
+        consume(TokenType.RIGHT_BRACE, "Expect '}' after block.");
+        return statements;
+    }
+
+    private Stmt printStatement() {
+        consume(TokenType.LEFT_PAREN, "Expect '(' after 'দেখাও'.");
+        Expr value = expression();
+        consume(TokenType.RIGHT_PAREN, "Expect ')' after expression.");
+        consume(TokenType.SEMICOLON, "Expect ';' after value.");
+        return new Print(value);
+    }
+
+    private Stmt expressionStatement() {
+        Expr expr = expression();
+        consume(TokenType.SEMICOLON, "Expect ';' after expression.");
+        return new Expression(expr);
+    }
+
+    public Expr expression() {
+        return assignment();
+    }
+
+    private Expr assignment() {
+        Expr expr = or();
+        
+        if (match(TokenType.ASSIGN)) {
+            Token equals = previous();
+            Expr value = assignment();
+            
+            if (expr instanceof Variable) {
+                Token name = ((Variable)expr).name();
+                return new Binary(expr, equals, value);
+            } else if (expr instanceof ArrayAccess) {
+                ArrayAccess access = (ArrayAccess)expr;
+                return new ArrayAssignment(access.array(), access.index(), value);
+            }
+            
+            throw new RuntimeException("Invalid assignment target.");
+        }
+        
+        return expr;
+    }
+
+    private Expr or() {
+        Expr expr = and();
+        while (match(TokenType.OR)) {
+            Token operator = previous();
+            Expr right = and();
+            expr = new Binary(expr, operator, right);
+        }
+        return expr;
+    }
+
+    private Expr and() {
+        Expr expr = equality();
+        while (match(TokenType.AND)) {
+            Token operator = previous();
+            Expr right = equality();
+            expr = new Binary(expr, operator, right);
+        }
+        return expr;
+    }
+
+    private Expr equality() {
+        Expr expr = comparison();
+        while (match(TokenType.EQUAL_EQUAL, TokenType.BANG_EQUAL)) {
+            Token operator = previous();
+            Expr right = comparison();
+            expr = new Binary(expr, operator, right);
+        }
+        return expr;
+    }
+
+    private Expr comparison() {
+        Expr expr = term();
+        while (match(TokenType.LESS, TokenType.LESS_EQUAL, TokenType.GREATER, TokenType.GREATER_EQUAL)) {
+            Token operator = previous();
+            Expr right = term();
+            expr = new Binary(expr, operator, right);
+        }
+        return expr;
+    }
+
+    private Expr term() {
+        Expr expr = factor();
+        while (match(TokenType.PLUS, TokenType.MINUS)) {
+            Token operator = previous();
+            Expr right = factor();
+            expr = new Binary(expr, operator, right);
+        }
+        return expr;
+    }
+
+    private Expr factor() {
+        Expr expr = unary();
+        while (match(TokenType.MULTIPLY, TokenType.DIVIDE, TokenType.MODULO)) {
+            Token operator = previous();
+            Expr right = unary();
+            expr = new Binary(expr, operator, right);
+        }
+        return expr;
+    }
+
+    private Expr unary() {
+        if (match(TokenType.MINUS, TokenType.BANG, TokenType.INCREMENT, TokenType.DECREMENT)) {
+            Token operator = previous();
+            Expr right = unary();
+            return new Unary(operator, right);
+        }
+        
+        Expr expr = primary();
+        
+        while (match(TokenType.INCREMENT, TokenType.DECREMENT)) {
+            Token operator = previous();
+            expr = new Unary(operator, expr);
+        }
+        
+        return expr;
+    }
+
+
+private Expr finishCall(Expr callee) {
+    List<Expr> arguments = new Vector<>();
+    if (!check(TokenType.RIGHT_PAREN)) {
+        do {
+            if (arguments.size() >= 255) {
+                throw new RuntimeException("Can't have more than 255 arguments.");
+            }
+            arguments.add(expression());
+        } while (match(TokenType.COMMA));
+    }
+    Token paren = consume(TokenType.RIGHT_PAREN, "Expect ')' after arguments.");
+    return new Call(callee, arguments);
+}
+
+// Add return statement parsing
+private Stmt returnStatement() {
+    Token keyword = previous();
+    Expr value = null;
+    if (!check(TokenType.SEMICOLON)) {
+        value = expression();
+    }
+    consume(TokenType.SEMICOLON, "Expect ';' after return value.");
+    return new Return(keyword, value);
+}
+
+
+private Expr primary() {
+    if (match(TokenType.FALSE)) return new Literal(false);
+    if (match(TokenType.TRUE)) return new Literal(true);
+    if (match(TokenType.NIL)) return new Literal(null);
+    
+    if (match(TokenType.INTEGER_LITERAL, TokenType.FLOAT_LITERAL, TokenType.STRING_LITERAL)) {
+        Object value = previous().literal;
+        // Convert to BigDecimal if it's a number
+        if (value instanceof Integer) {
+            value = new BigDecimal((Integer)value);
+        } else if (value instanceof Double) {
+            value = BigDecimal.valueOf((Double)value);
+        }
+        return new Literal(value);
+    }
+    
+    if (match(TokenType.ARRAY_SIZE)) {
+        consume(TokenType.LEFT_PAREN, "Expect '(' after 'অ্যারের_আকার'");
+        Expr array = expression();
+        consume(TokenType.RIGHT_PAREN, "Expect ')' after array expression");
+        return new ArraySize(array);
+    }
+    
+    // Handle built-in functions
+    if (match(TokenType.BINARY_SEARCH)) {
+        return binarySearchCall();
+    }
+    if (match(TokenType.BUBBLE_SORT)) {
+        return bubbleSortCall();
+    }
+    if (match(TokenType.QUICK_SORT)) {
+        return quickSortCall();
+    }
+    
+    if (match(TokenType.IDENTIFIER)) {
+        Token name = previous();
+        // Handle function calls
+        if (match(TokenType.LEFT_PAREN)) {
+            return finishCall(new Variable(name));
+        }
+        // Check for array access
+        if (match(TokenType.LEFT_BRACKET)) {
+            Expr index = expression();
+            consume(TokenType.RIGHT_BRACKET, "Expect ']' after array index.");
+            return new ArrayAccess(new Variable(name), index);
+        }
+        return new Variable(name);
+    }
+    
+    if (match(TokenType.LEFT_PAREN)) {
+        Expr expr = expression();
+        consume(TokenType.RIGHT_PAREN, "Expect ')' after expression.");
+        return new Grouping(expr);
+    }
+    
+    throw new RuntimeException("Expect expression.");
+}
+
+private Expr binarySearchCall() {
+    Token functionToken = previous(); // Get the BINARY_SEARCH token
+    consume(TokenType.LEFT_PAREN, "Expect '(' after 'বাইনারি_সার্চ'");
+    Expr array = expression();
+    consume(TokenType.COMMA, "Expect ',' after array expression");
+    Expr key = expression();
+    consume(TokenType.RIGHT_PAREN, "Expect ')' after key expression");
+    return new Call(new Variable(new Token(TokenType.IDENTIFIER, "বাইনারি_সার্চ", null, functionToken.line)), 
+                   Arrays.asList(array, key));
+}
+
+private Expr bubbleSortCall() {
+    Token functionToken = previous(); // Get the BUBBLE_SORT token
+    consume(TokenType.LEFT_PAREN, "Expect '(' after 'বাবল_সর্ট'");
+    Expr array = expression();
+    consume(TokenType.RIGHT_PAREN, "Expect ')' after array expression");
+    return new Call(new Variable(new Token(TokenType.IDENTIFIER, "বাবল_সর্ট", null, functionToken.line)), 
+                   Collections.singletonList(array));
+}
+
+private Expr quickSortCall() {
+    Token functionToken = previous(); // Get the QUICK_SORT token
+    consume(TokenType.LEFT_PAREN, "Expect '(' after 'কুইক_সর্ট'");
+    Expr array = expression();
+    consume(TokenType.RIGHT_PAREN, "Expect ')' after array expression");
+    return new Call(new Variable(new Token(TokenType.IDENTIFIER, "কুইক_সর্ট", null, functionToken.line)), 
+                   Collections.singletonList(array));
+}
+
+
+    private boolean match(TokenType... types) {
+        for (TokenType type : types) {
+            if (check(type)) {
+                advance();
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private Token consume(TokenType type, String message) {
+        if (check(type)) return advance();
+        throw new RuntimeException(message);
+    }
+
+    private boolean check(TokenType type) {
+        if (isAtEnd()) return false;
+        return peek().type == type;
+    }
+
+    private Token advance() {
+        if (!isAtEnd()) current++;
+        return previous();
+    }
+
+    private boolean isAtEnd() {
+        return peek().type == TokenType.EOF;
+    }
+
+    private Token peek() {
+        return tokens.get(current);
+    }
+
+    private Token previous() {
+        return tokens.get(current - 1);
+    }
+
+    private void synchronize() {
+        advance();
+        while (!isAtEnd()) {
+            if (previous().type == TokenType.SEMICOLON) return;
+            switch (peek().type) {
+                case INTEGER:
+                case FLOAT:
+                case STRING:
+                case BOOLEAN:
+                case INTEGER_ARRAY:
+                case FLOAT_ARRAY:
+                case STRING_ARRAY:
+                case BOOLEAN_ARRAY:
+                case PRINT:
+                case IF:
+                    return;
+            }
+            advance();
+        }
+    }
+}
+
+class Environment {
+    private final Environment enclosing;
+    private final Map<String, Object> values = new HashMap<>();
+    private final Map<String, Object[]> arrays = new HashMap<>();
+    private final Map<String, Function> functions = new HashMap<>();
+
+    Environment() {
+        enclosing = null;
+    }
+
+    Environment(Environment enclosing) {
+        this.enclosing = enclosing;
+    }
+
+void defineFunction(String name, Function function) {
+        functions.put(name, function);
+    }
+    
+    Function getFunction(Token name) {
+        if (functions.containsKey(name.lexeme)) {
+            return functions.get(name.lexeme);
+        }
+        if (enclosing != null) return enclosing.getFunction(name);
+        throw new RuntimeException("Undefined function '" + name.lexeme + "'");
+    }
+
+
+    void define(String name, Object value) {
+        values.put(name, value);
+    }
+
+    void defineArray(String name, Object[] array) {
+        arrays.put(name, array);
+    }
+
+Object get(Token name) {
+        // First check if it's a function
+        if (functions.containsKey(name.lexeme)) {
+            return functions.get(name.lexeme);
+        }
+        
+        // Then check regular variables
+        if (values.containsKey(name.lexeme)) {
+            return values.get(name.lexeme);
+        }
+
+        if (arrays.containsKey(name.lexeme)) {
+            return arrays.get(name.lexeme);
+        }
+
+        if (enclosing != null) return enclosing.get(name);
+
+        throw new RuntimeException("Undefined variable '" + name.lexeme + "'");
+    }
+int getArraySize(Token name) {
+    if (arrays.containsKey(name.lexeme)) {
+        return arrays.get(name.lexeme).length;
+    }
+    
+    if (enclosing != null) return enclosing.getArraySize(name);
+    
+    throw new RuntimeException("Undefined array '" + name.lexeme + "'");
+}
+Object getArrayElement(Token name, int index) {
+    if (arrays.containsKey(name.lexeme)) {
+        Object[] array = arrays.get(name.lexeme);
+        if (index < 1 || index > array.length) {
+            throw new RuntimeException("Array index out of bounds for '" + name.lexeme + "'");
+        }
+        return array[index - 1]; // Convert from 1-based to 0-based
+    }
+
+    if (enclosing != null) return enclosing.getArrayElement(name, index);
+
+    throw new RuntimeException("Undefined array '" + name.lexeme + "'");
+}
+
+    void assign(Token name, Object value) {
+        if (values.containsKey(name.lexeme)) {
+            values.put(name.lexeme, value);
+            return;
+        }
+
+        if (enclosing != null) {
+            enclosing.assign(name, value);
+            return;
+        }
+
+        throw new RuntimeException("Undefined variable '" + name.lexeme + "'");
+    }
+
+    void assignArrayElement(Token name, int index, Object value) {
+        if (arrays.containsKey(name.lexeme)) {
+            Object[] array = arrays.get(name.lexeme);
+            if (index < 1 || index > array.length) {
+                throw new RuntimeException("Array index out of bounds for '" + name.lexeme + "'");
+            }
+            
+            // Convert value type if needed
+            if (array instanceof Integer[] && value instanceof Double) {
+                value = ((Double)value).intValue();
+            } else if (array instanceof Double[] && value instanceof Integer) {
+                value = ((Integer)value).doubleValue();
+            }
+            
+            array[index - 1] = value; // Convert from 1-based to 0-based
+            return;
+        }
+
+        if (enclosing != null) {
+            enclosing.assignArrayElement(name, index, value);
+            return;
+        }
+
+        throw new RuntimeException("Undefined array '" + name.lexeme + "'");
+    }
+}
+
+class BreakException extends RuntimeException {}
+class ContinueException extends RuntimeException {}
+
+class Interpreter implements ExprVisitor<Object>, StmtVisitor<Void> {
+    private Environment environment = new Environment();
+
+    void interpret(List<Stmt> statements) {
+        try {
+            for (Stmt statement : statements) {
+                execute(statement);
+            }
+        } catch (RuntimeException error) {
+            System.err.println("Runtime error: " + error.getMessage());
+            System.exit(1);
+        }
+    }
+
+    private void execute(Stmt stmt) {
+        stmt.accept(this);
+    }
+
+    private void executeBlock(List<Stmt> statements, Environment environment) {
+        Environment previous = this.environment;
+        try {
+            this.environment = environment;
+            for (Stmt statement : statements) {
+                execute(statement);
+            }
+        } finally {
+            this.environment = previous;
+        }
+    }
+
+
+// Add to Interpreter's visit methods:
+@Override
+public Void visitFunctionStmt(Function stmt) {
+    environment.defineFunction(stmt.name().lexeme, stmt);
+    return null;
+}
+
+@Override
+public Void visitReturnStmt(Return stmt) {
+    Object value = null;
+    if (stmt.value() != null) value = evaluate(stmt.value());
+    throw new ReturnException(value);
+}
+
+@Override
+public Object visitCallExpr(Call expr) {
+    // Handle built-in functions
+    if (expr.callee() instanceof Variable) {
+        String functionName = ((Variable)expr.callee()).name().lexeme;
+        
+        // Handle binary search
+        if (functionName.equals("বাইনারি_সার্চ")) {
+            if (expr.arguments().size() != 2) {
+                throw new RuntimeException("Expected 2 arguments for binary search");
+            }
+            Object array = evaluate(expr.arguments().get(0));
+            Object key = evaluate(expr.arguments().get(1));
+            
+            if (!(array instanceof Object[])) {
+                throw new RuntimeException("First argument must be an array");
+            }
+            
+            return ArrayManipulator.binarySearch((Object[])array, key);
+        }
+        
+        // Handle bubble sort
+        if (functionName.equals("বাবল_সর্ট")) {
+            if (expr.arguments().size() != 1) {
+                throw new RuntimeException("Expected 1 argument for bubble sort");
+            }
+            Object array = evaluate(expr.arguments().get(0));
+            
+            if (!(array instanceof Object[])) {
+                throw new RuntimeException("Argument must be an array");
+            }
+            
+            ArrayManipulator.bubbleSort((Object[])array);
+            return null; // Sort modifies array in-place
+        }
+        
+        // Handle quick sort
+        if (functionName.equals("কুইক_সর্ট")) {
+            if (expr.arguments().size() != 1) {
+                throw new RuntimeException("Expected 1 argument for quick sort");
+            }
+            Object array = evaluate(expr.arguments().get(0));
+            
+            if (!(array instanceof Object[])) {
+                throw new RuntimeException("Argument must be an array");
+            }
+            
+            ArrayManipulator.quickSort((Object[])array);
+            return null; // Sort modifies array in-place
+        }
+    }
+    
+    // Handle user-defined functions (existing functionality)
+    Object callee = evaluate(expr.callee());
+    
+    if (!(callee instanceof Function)) {
+        throw new RuntimeException("Can only call functions.");
+    }
+    
+    Function function = (Function)callee;
+    List<Object> arguments = new Vector<>();
+    for (Expr argument : expr.arguments()) {
+        arguments.add(evaluate(argument));
+    }
+    
+    if (arguments.size() != function.parameters().size()) {
+        throw new RuntimeException("Expected " + function.parameters().size() + 
+            " arguments but got " + arguments.size() + ".");
+    }
+    
+    Environment environment = new Environment(this.environment);
+    for (int i = 0; i < function.parameters().size(); i++) {
+        environment.define(function.parameters().get(i).lexeme, arguments.get(i));
+    }
+    
+    try {
+        executeBlock(function.body(), environment);
+    } catch (ReturnException returnValue) {
+        if (function.returnType().type == TokenType.VOID && returnValue.value != null) {
+            throw new RuntimeException("Void function cannot return a value");
+        }
+        if (function.returnType().type != TokenType.VOID && returnValue.value == null) {
+            throw new RuntimeException("Function must return a value");
+        }
+        return returnValue.value;
+    }
+    
+    if (function.returnType().type != TokenType.VOID) {
+        throw new RuntimeException("Function must return a value");
+    }
+    return null;
+}
+// Add this exception class
+private static class ReturnException extends RuntimeException {
+    final Object value;
+    ReturnException(Object value) {
+        this.value = value;
+    }
+}
+
+
+    @Override
+    public Void visitBlockStmt(Block stmt) {
+        Environment previous = this.environment;
+        try {
+            this.environment = new Environment(environment);
+            for (Stmt statement : stmt.statements()) {
+                try {
+                    execute(statement);
+                } catch (ContinueException e) {
+                    throw e;
+                } catch (BreakException e) {
+                    throw e;
+                }
+            }
+        } finally {
+            this.environment = previous;
+        }
+        return null;
+    }
+    
+    @Override
+    public Void visitBreakStmt(Break stmt) {
+        throw new BreakException();
+    }
+    
+    @Override
+    public Void visitContinueStmt(Continue stmt) {
+        throw new ContinueException();
+    }
+
+    @Override
+    public Void visitExpressionStmt(Expression stmt) {
+        evaluate(stmt.expression());
+        return null;
+    }
+
+    @Override
+    public Void visitIfStmt(If stmt) {
+        Object conditionValue = evaluate(stmt.condition());
+        if (isTruthy(conditionValue)) {
+            execute(stmt.thenBranch());
+            return null;
+        }
+        
+        for (ElseIf elseIf : stmt.elseIfBranches()) {
+            Object elseIfConditionValue = evaluate(elseIf.condition());
+            if (isTruthy(elseIfConditionValue)) {
+                execute(elseIf.statement());
+                return null;
+            }
+        }
+        
+        if (stmt.elseBranch() != null) {
+            execute(stmt.elseBranch());
+        }
+        
+        return null;
+    }
+
+    @Override
+    public Void visitPrintStmt(Print stmt) {
+        Object value = evaluate(stmt.expression());
+        System.out.print(stringify(value));
+        return null;
+    }
+
+    @Override
+    public Void visitWhileStmt(While stmt) {
+        while (isTruthy(evaluate(stmt.condition()))) {
+            try {
+                execute(stmt.body());
+            } catch (BreakException e) {
+                break;
+            } catch (ContinueException e) {
+                if (stmt.increment() != null) {
+                    evaluate(stmt.increment());
+                }
+                continue;
+            }
+            
+            if (stmt.increment() != null) {
+                evaluate(stmt.increment());
+            }
+        }
+        return null;
+    }
+
+    @Override
+    public Void visitVarStmt(Var stmt) {
+        Object value = null;
+        if (stmt.initializer() != null) {
+            value = evaluate(stmt.initializer());
+            
+            // Convert to appropriate type based on variable declaration
+            if (value instanceof BigDecimal) {
+                if (stmt.name().type == TokenType.INTEGER) {
+                    // For পূর্ণসংখ্যা, remove decimal part
+                    value = ((BigDecimal)value).setScale(0, RoundingMode.DOWN);
+                }
+            } else if (value instanceof String || value instanceof Boolean) {
+                // Keep as is for strings and booleans
+            } else {
+                // Convert other numbers to BigDecimal
+                if (value instanceof Integer) {
+                    value = new BigDecimal((Integer)value);
+                } else if (value instanceof Double) {
+                    value = BigDecimal.valueOf((Double)value);
+                }
+            }
+        }
+        
+        // Set default values if no initializer
+        if (value == null) {
+            if (stmt.name().type == TokenType.INTEGER || stmt.name().type == TokenType.FLOAT) {
+                value = BigDecimal.ZERO;
+            } else if (stmt.name().type == TokenType.STRING) {
+                value = "";
+            } else if (stmt.name().type == TokenType.BOOLEAN) {
+                value = false;
+            }
+        }
+        
+        environment.define(stmt.name().lexeme, value);
+        return null;
+    }
+    
+@Override
+public Void visitArrayStmt(ArrayStmt stmt) {
+    Object[] array = null;
+    
+    // Determine array size
+    int size = 0;
+    if (stmt.size() != null) {
+        Object sizeValue = evaluate(stmt.size());
+        if (!(sizeValue instanceof BigDecimal)) {
+            throw new RuntimeException("Array size must be an integer");
+        }
+        size = ((BigDecimal)sizeValue).intValue();
+    } else if (!stmt.initialValues().isEmpty()) {
+        // If size not specified but initial values are, use initial values count
+        size = stmt.initialValues().size();
+    } else {
+        throw new RuntimeException("Array size must be specified or initial values provided");
+    }
+    
+    // Initialize with default values based on type
+    switch (stmt.type()) {
+        case INTEGER_ARRAY:
+        case FLOAT_ARRAY:
+            array = new BigDecimal[size];
+            for (int i = 0; i < size; i++) array[i] = BigDecimal.ZERO;
+            break;
+        case STRING_ARRAY:
+            array = new String[size];
+            for (int i = 0; i < size; i++) array[i] = "";
+            break;
+        case BOOLEAN_ARRAY:
+            array = new Boolean[size];
+            for (int i = 0; i < size; i++) array[i] = false;
+            break;
+        default:
+            throw new RuntimeException("Unknown array type");
+    }
+    
+    // Apply initial values if provided
+    for (int i = 0; i < stmt.initialValues().size(); i++) {
+        if (i >= array.length) {
+            throw new RuntimeException("Too many initial values for array");
+        }
+        
+        Object value = evaluate(stmt.initialValues().get(i));
+        
+        // Convert value to appropriate type
+        switch (stmt.type()) {
+            case INTEGER_ARRAY:
+                if (value instanceof BigDecimal) {
+                    array[i] = ((BigDecimal)value).setScale(0, RoundingMode.DOWN);
+                } else {
+                    throw new RuntimeException("Array type mismatch");
+                }
+                break;
+            case FLOAT_ARRAY:
+                if (value instanceof BigDecimal) {
+                    array[i] = (BigDecimal)value;
+                } else {
+                    throw new RuntimeException("Array type mismatch");
+                }
+                break;
+            case STRING_ARRAY:
+                array[i] = stringify(value);
+                break;
+            case BOOLEAN_ARRAY:
+                array[i] = isTruthy(value);
+                break;
+        }
+    }
+    
+    environment.defineArray(stmt.name().lexeme, array);
+    return null;
+}
+    @Override
+    public Object visitArraySizeExpr(ArraySize expr) {
+        Object array = evaluate(expr.array());
+        
+        if (array instanceof Object[]) {
+            return ((Object[])array).length;
+        }
+        
+        throw new RuntimeException("Operand must be an array");
+    }
+    @Override
+    public Void visitSortStmt(SortStmt stmt) {
+        Object array = evaluate(stmt.array());
+        
+        if (!(array instanceof Object[])) {
+            throw new RuntimeException("Operand must be an array for sorting");
+        }
+        
+        Object[] arr = (Object[])array;
+        
+        switch (stmt.sortType()) {
+            case "bubble":
+                ArrayManipulator.bubbleSort(arr);
+                break;
+            case "quick":
+                ArrayManipulator.quickSort(arr);
+                break;
+            default:
+                throw new RuntimeException("Unknown sort type: " + stmt.sortType());
+        }
+        
+        return null;
+    }
+    
+    @Override
+    public Void visitSearchStmt(SearchStmt stmt) {
+        Object array = evaluate(stmt.array());
+        Object key = evaluate(stmt.key());
+        
+        if (!(array instanceof Object[])) {
+            throw new RuntimeException("First operand must be an array for binary search");
+        }
+        
+        int result = ArrayManipulator.binarySearch((Object[])array, key);
+        System.out.println(result); // Print the 1-based index or -1 if not found
+        
+        return null;
+    }
+    
+    @Override
+    public Void visitInputStmt(Input stmt) {
+        Scanner scanner = new Scanner(System.in);
+        Object value = null;
+        boolean validInput = false;
+        
+        while (!validInput) {
+            try {
+                String input = scanner.nextLine().trim();
+                
+                if (input.matches(".*[+\\-*/].*")) {
+                    Lexer lexer = new Lexer(input);
+                    List<Token> tokens = lexer.scanTokens();
+                    Parser parser = new Parser(tokens);
+                    Expr expr = parser.expression();
+                    value = evaluate(expr);
+                } else {
+                    switch (stmt.expectedType()) {
+                        case INTEGER:
+                            value = new BigDecimal(input).setScale(0, RoundingMode.DOWN);
+                            break;
+                        case FLOAT:
+                            value = new BigDecimal(input);
+                            break;
+                        case STRING:
+                            value = input;
+                            break;
+                        case BOOLEAN:
+                            if (input.equalsIgnoreCase("সত্য") || input.equalsIgnoreCase("true")) {
+                                value = true;
+                            } else if (input.equalsIgnoreCase("মিথ্যা") || input.equalsIgnoreCase("false")) {
+                                value = false;
+                            } else {
+                                throw new RuntimeException("Invalid boolean value");
+                            }
+                            break;
+                    }
+                }
+                
+                // Ensure value is BigDecimal for numbers
+                if (stmt.expectedType() == TokenType.INTEGER || stmt.expectedType() == TokenType.FLOAT) {
+                    if (!(value instanceof BigDecimal)) {
+                        if (value instanceof Integer) {
+                            value = new BigDecimal((Integer)value);
+                        } else if (value instanceof Double) {
+                            value = BigDecimal.valueOf((Double)value);
+                        }
+                    }
+                    // For পূর্ণসংখ্যা, remove decimal part
+                    if (stmt.expectedType() == TokenType.INTEGER) {
+                        value = ((BigDecimal)value).setScale(0, RoundingMode.DOWN);
+                    }
+                }
+                
+                validInput = true;
+            } catch (Exception e) {
+                System.out.println("Invalid input for type " + stmt.expectedType().bangla + ". Please try again:");
+            }
+        }
+        
+        environment.assign(stmt.variable(), value);
+        return null;
+    }
+    
+    @Override
+        public Object visitBinaryExpr(Binary expr) {
+        Object left = evaluate(expr.left());
+        Object right = evaluate(expr.right());
+            if (left instanceof Integer) left = new BigDecimal((Integer)left);
+    if (right instanceof Integer) right = new BigDecimal((Integer)right);
+    if (left instanceof Double) left = BigDecimal.valueOf((Double)left);
+    if (right instanceof Double) right = BigDecimal.valueOf((Double)right);
+
+
+        switch (expr.operator().type) {
+            case PLUS:
+                if (left instanceof String || right instanceof String) {
+                    return stringify(left) + stringify(right);
+                }
+                if (left instanceof BigDecimal && right instanceof BigDecimal) {
+                    return ((BigDecimal)left).add((BigDecimal)right);
+                }
+                throw new RuntimeException("Operands must be numbers");
+                
+            case MINUS:
+                if (left instanceof BigDecimal && right instanceof BigDecimal) {
+                    return ((BigDecimal)left).subtract((BigDecimal)right);
+                }
+                throw new RuntimeException("Operands must be numbers");
+                
+            case MULTIPLY:
+                if (left instanceof BigDecimal && right instanceof BigDecimal) {
+                    return ((BigDecimal)left).multiply((BigDecimal)right);
+                }
+                throw new RuntimeException("Operands must be numbers");
+                
+            case DIVIDE:
+                if (left instanceof BigDecimal && right instanceof BigDecimal) {
+                    try {
+                        return ((BigDecimal)left).divide((BigDecimal)right, MathContext.DECIMAL128);
+                    } catch (ArithmeticException e) {
+                        // For non-terminating decimal expansion
+                        return ((BigDecimal)left).divide((BigDecimal)right, 20, RoundingMode.HALF_UP);
+                    }
+                }
+                throw new RuntimeException("Operands must be numbers");
+                
+            case MODULO:
+                if (left instanceof BigDecimal && right instanceof BigDecimal) {
+                    return ((BigDecimal)left).remainder((BigDecimal)right);
+                }
+                throw new RuntimeException("Operands must be numbers");
+                
+            case EQUAL_EQUAL: return isEqual(left, right);
+            case BANG_EQUAL: return !isEqual(left, right);
+                
+            case LESS:
+                if (left instanceof BigDecimal && right instanceof BigDecimal) {
+                    return ((BigDecimal)left).compareTo((BigDecimal)right) < 0;
+                }
+                throw new RuntimeException("Operands must be numbers");
+                
+            case LESS_EQUAL:
+                if (left instanceof BigDecimal && right instanceof BigDecimal) {
+                    return ((BigDecimal)left).compareTo((BigDecimal)right) <= 0;
+                }
+                throw new RuntimeException("Operands must be numbers");
+                
+            case GREATER:
+                if (left instanceof BigDecimal && right instanceof BigDecimal) {
+                    return ((BigDecimal)left).compareTo((BigDecimal)right) > 0;
+                }
+                throw new RuntimeException("Operands must be numbers");
+                
+            case GREATER_EQUAL:
+                if (left instanceof BigDecimal && right instanceof BigDecimal) {
+                    return ((BigDecimal)left).compareTo((BigDecimal)right) >= 0;
+                }
+                throw new RuntimeException("Operands must be numbers");
+                
+            case AND: return isTruthy(left) && isTruthy(right);
+            case OR: return isTruthy(left) || isTruthy(right);
+                
+            case ASSIGN:
+                if (expr.left() instanceof Variable) {
+                    Token name = ((Variable)expr.left()).name();
+                    // Convert to integer if variable is পূর্ণসংখ্যা
+                    if (name.type == TokenType.INTEGER && right instanceof BigDecimal) {
+                        right = ((BigDecimal)right).setScale(0, RoundingMode.DOWN);
+                    }
+                    environment.assign(name, right);
+                    return right;
+                }
+                throw new RuntimeException("Invalid assignment target.");
+        }
+        throw new RuntimeException("Unknown operator");
+    }
+
+    private void checkNumberOperands(Token operator, Object left, Object right) {
+        if (left instanceof Double || left instanceof Integer) {
+            if (right instanceof Double || right instanceof Integer) {
+                return;
+            }
+        }
+        throw new RuntimeException("Operands must be numbers");
+    }
+    @Override
+    public Object visitGroupingExpr(Grouping expr) {
+        return evaluate(expr.expression());
+    }
+
+@Override
+public Object visitLiteralExpr(Literal expr) {
+    if (expr.value() instanceof BigDecimal) {
+        return expr.value();
+    }
+    // Handle other literal types (strings, booleans, null)
+    return expr.value();
+}
+
+    @Override
+    public Object visitUnaryExpr(Unary expr) {
+        Object right = evaluate(expr.right());
+        
+        switch (expr.operator().type) {
+            case MINUS:
+                if (right instanceof BigDecimal) {
+                    return ((BigDecimal)right).negate();
+                }
+                throw new RuntimeException("Operand must be a number");
+                
+            case BANG: 
+                return !isTruthy(right);
+                
+            case INCREMENT:
+                if (right instanceof BigDecimal) {
+                    if (expr.right() instanceof Variable) {
+                        Token name = ((Variable)expr.right()).name();
+                        BigDecimal newValue = ((BigDecimal)right).add(BigDecimal.ONE);
+                        // For পূর্ণসংখ্যা, keep it as integer
+                        if (name.type == TokenType.INTEGER) {
+                            newValue = newValue.setScale(0, RoundingMode.DOWN);
+                        }
+                        environment.assign(name, newValue);
+                        if (expr.operator().lexeme.equals(expr.right().toString() + "++")) {
+                            return right;
+                        }
+                        return newValue;
+                    } else if (expr.right() instanceof ArrayAccess) {
+                        // Handle array element increment
+                        ArrayAccess access = (ArrayAccess)expr.right();
+                        Object array = evaluate(access.array());
+                        Object indexObj = evaluate(access.index());
+                        
+                        if (!(indexObj instanceof BigDecimal)) {
+                            throw new RuntimeException("Array index must be an integer");
+                        }
+                        
+                        int index = ((BigDecimal)indexObj).intValue();
+                        
+                        if (array instanceof Object[]) {
+                            Object[] arr = (Object[])array;
+                            if (index < 1 || index > arr.length) {
+                                throw new RuntimeException("Array index out of bounds");
+                            }
+                            
+                            if (!(arr[index - 1] instanceof BigDecimal)) {
+                                throw new RuntimeException("Can only increment numeric array elements");
+                            }
+                            
+                            BigDecimal currentValue = (BigDecimal)arr[index - 1];
+                            BigDecimal newValue = currentValue.add(BigDecimal.ONE);
+                            
+                            // Check if the array is declared as integer array
+                            if (access.array() instanceof Variable) {
+                                Token arrayName = ((Variable)access.array()).name();
+                                if (arrayName.type == TokenType.INTEGER_ARRAY) {
+                                    newValue = newValue.setScale(0, RoundingMode.DOWN);
+                                }
+                            }
+                            
+                            arr[index - 1] = newValue;
+                            
+                            if (expr.operator().lexeme.endsWith("++")) {
+                                return currentValue; // post-increment returns original value
+                            }
+                            return newValue; // pre-increment returns new value
+                        }
+                        throw new RuntimeException("Variable is not an array");
+                    }
+                    throw new RuntimeException("Can only increment variables or array elements");
+                }
+                throw new RuntimeException("Operand must be a number");
+                
+            case DECREMENT:
+                if (right instanceof BigDecimal) {
+                    if (expr.right() instanceof Variable) {
+                        Token name = ((Variable)expr.right()).name();
+                        BigDecimal newValue = ((BigDecimal)right).subtract(BigDecimal.ONE);
+                        // For পূর্ণসংখ্যা, keep it as integer
+                        if (name.type == TokenType.INTEGER) {
+                            newValue = newValue.setScale(0, RoundingMode.DOWN);
+                        }
+                        environment.assign(name, newValue);
+                        if (expr.operator().lexeme.equals(expr.right().toString() + "--")) {
+                            return right;
+                        }
+                        return newValue;
+                    } else if (expr.right() instanceof ArrayAccess) {
+                        // Handle array element decrement
+                        ArrayAccess access = (ArrayAccess)expr.right();
+                        Object array = evaluate(access.array());
+                        Object indexObj = evaluate(access.index());
+                        
+                        if (!(indexObj instanceof BigDecimal)) {
+                            throw new RuntimeException("Array index must be an integer");
+                        }
+                        
+                        int index = ((BigDecimal)indexObj).intValue();
+                        
+                        if (array instanceof Object[]) {
+                            Object[] arr = (Object[])array;
+                            if (index < 1 || index > arr.length) {
+                                throw new RuntimeException("Array index out of bounds");
+                            }
+                            
+                            if (!(arr[index - 1] instanceof BigDecimal)) {
+                                throw new RuntimeException("Can only decrement numeric array elements");
+                            }
+                            
+                            BigDecimal currentValue = (BigDecimal)arr[index - 1];
+                            BigDecimal newValue = currentValue.subtract(BigDecimal.ONE);
+                            
+                            // Check if the array is declared as integer array
+                            if (access.array() instanceof Variable) {
+                                Token arrayName = ((Variable)access.array()).name();
+                                if (arrayName.type == TokenType.INTEGER_ARRAY) {
+                                    newValue = newValue.setScale(0, RoundingMode.DOWN);
+                                }
+                            }
+                            
+                            arr[index - 1] = newValue;
+                            
+                            if (expr.operator().lexeme.endsWith("--")) {
+                                return currentValue; // post-decrement returns original value
+                            }
+                            return newValue; // pre-decrement returns new value
+                        }
+                        throw new RuntimeException("Variable is not an array");
+                    }
+                    throw new RuntimeException("Can only decrement variables or array elements");
+                }
+                throw new RuntimeException("Operand must be a number");
+                
+            default:
+                throw new RuntimeException("Unknown operator");
+        }
+    }
+
+@Override
+public Object visitVariableExpr(Variable expr) {
+    // First try to get as a regular variable
+    try {
+        return environment.get(expr.name());
+    } catch (RuntimeException e) {
+        // If not found as variable, try as function
+        try {
+            return environment.getFunction(expr.name());
+        } catch (RuntimeException e2) {
+            // If neither exists, throw the original variable not found error
+            throw e;
+        }
+    }
+}
+    @Override
+    public Object visitArrayExpr(Array expr) {
+        throw new RuntimeException("Array expressions should be handled by ArrayStmt");
+    }
+    
+@Override
+public Object visitArrayAccessExpr(ArrayAccess expr) {
+    Object array = evaluate(expr.array());
+    Object indexObj = evaluate(expr.index());
+    
+    if (!(indexObj instanceof BigDecimal)) {
+        throw new RuntimeException("Array index must be an integer");
+    }
+    
+    int index = ((BigDecimal)indexObj).intValue();
+    
+    if (array instanceof Object[]) {
+        Object[] arr = (Object[])array;
+        if (index < 1 || index > arr.length) {
+            throw new RuntimeException("Array index out of bounds");
+        }
+        return arr[index - 1]; // Convert from 1-based to 0-based
+    }
+    
+    throw new RuntimeException("Variable is not an array");
+}
+
+@Override
+public Object visitArrayAssignmentExpr(ArrayAssignment expr) {
+    Object array = evaluate(expr.array());
+    Object indexObj = evaluate(expr.index());
+    Object value = evaluate(expr.value());
+    
+    if (!(indexObj instanceof BigDecimal)) {
+        throw new RuntimeException("Array index must be an integer");
+    }
+    
+    int index = ((BigDecimal)indexObj).intValue();
+    
+    if (array instanceof Object[]) {
+        Object[] arr = (Object[])array;
+        if (index < 1 || index > arr.length) {
+            throw new RuntimeException("Array index out of bounds");
+        }
+        
+        // Type checking
+        if (arr instanceof BigDecimal[]) {
+            if (!(value instanceof BigDecimal)) {
+                throw new RuntimeException("Array type mismatch");
+            }
+        } else if (arr instanceof String[]) {
+            value = stringify(value);
+        } else if (arr instanceof Boolean[]) {
+            value = isTruthy(value);
+        }
+        
+        arr[index - 1] = value; // Convert from 1-based to 0-based
+        return value;
+    }
+    
+    throw new RuntimeException("Variable is not an array");
+}
+
+    private Object evaluate(Expr expr) {
+        return expr.accept(this);
+    }
+
+    private String stringify(Object object) {
+        if (object == null) return "null";
+        if (object instanceof BigDecimal) {
+            BigDecimal bd = (BigDecimal)object;
+            // Remove .0 for integer values
+            if (bd.scale() <= 0 || bd.stripTrailingZeros().scale() <= 0) {
+                return bd.toBigInteger().toString();
+            }
+            return bd.stripTrailingZeros().toPlainString();
+        }
+        if (object instanceof Object[]) {
+            return Arrays.toString((Object[])object);
+        }
+        return object.toString();
+    }
+
+
+    private double convertToDouble(Object value) {
+        if (value instanceof Double) return (Double)value;
+        if (value instanceof Integer) return ((Integer)value).doubleValue();
+        throw new RuntimeException("Cannot convert to number");
+    }
+
+    private boolean isEqual(Object a, Object b) {
+        if (a == null && b == null) return true;
+        if (a == null) return false;
+        return a.equals(b);
+    }
+
+    private boolean isTruthy(Object object) {
+        if (object == null) return false;
+        if (object instanceof Boolean) return (Boolean)object;
+        if (object instanceof Number) return ((Number)object).doubleValue() != 0;
+        return true;
+    }
+
+    private void checkNumberOperand(Token operator, Object operand) {
+        if (operand instanceof Double || operand instanceof Integer) return;
+        throw new RuntimeException("Operand must be a number");
+    }
+}
+
+class ArrayManipulator {
+    // Bubble sort for comparable arrays
+    public static void bubbleSort(Object[] array) {
+        if (!isComparableArray(array)) {
+            throw new RuntimeException("Array elements must be comparable for sorting");
+        }
+        
+        int n = array.length;
+        for (int i = 0; i < n-1; i++) {
+            for (int j = 0; j < n-i-1; j++) {
+                if (compare(array[j], array[j+1]) > 0) {
+                    // Swap elements
+                    Object temp = array[j];
+                    array[j] = array[j+1];
+                    array[j+1] = temp;
+                }
+            }
+        }
+    }
+
+    // Quick sort for comparable arrays
+    public static void quickSort(Object[] array) {
+        if (!isComparableArray(array)) {
+            throw new RuntimeException("Array elements must be comparable for sorting");
+        }
+        quickSort(array, 0, array.length - 1);
+    }
+
+    private static void quickSort(Object[] array, int low, int high) {
+        if (low < high) {
+            int pi = partition(array, low, high);
+            quickSort(array, low, pi - 1);
+            quickSort(array, pi + 1, high);
+        }
+    }
+
+    private static int partition(Object[] array, int low, int high) {
+        Object pivot = array[high];
+        int i = low - 1;
+        
+        for (int j = low; j < high; j++) {
+            if (compare(array[j], pivot) <= 0) {
+                i++;
+                Object temp = array[i];
+                array[i] = array[j];
+                array[j] = temp;
+            }
+        }
+        
+        Object temp = array[i+1];
+        array[i+1] = array[high];
+        array[high] = temp;
+        
+        return i + 1;
+    }
+
+    // Binary search in sorted array
+    public static int binarySearch(Object[] array, Object key) {
+        if (!isComparableArray(array)) {
+            throw new RuntimeException("Array elements must be comparable for binary search");
+        }
+        
+        int low = 0;
+        int high = array.length - 1;
+        
+        while (low <= high) {
+            int mid = low + (high - low) / 2;
+            int cmp = compare(array[mid], key);
+            
+            if (cmp == 0) {
+                return mid + 1; // Return 1-based index
+            } else if (cmp < 0) {
+                low = mid + 1;
+            } else {
+                high = mid - 1;
+            }
+        }
+        
+        return -1; // Not found
+    }
+
+    // Helper method to compare two objects
+    private static int compare(Object a, Object b) {
+        if (a instanceof BigDecimal && b instanceof BigDecimal) {
+            return ((BigDecimal)a).compareTo((BigDecimal)b);
+        } else if (a instanceof String && b instanceof String) {
+            return ((String)a).compareTo((String)b);
+        } else if (a instanceof Boolean && b instanceof Boolean) {
+            return ((Boolean)a).compareTo((Boolean)b);
+        }
+        throw new RuntimeException("Cannot compare elements of different types");
+    }
+
+
+    // Check if array elements are comparable
+    private static boolean isComparableArray(Object[] array) {
+        if (array.length == 0) return true;
+        
+        Object first = array[0];
+        if (first == null) return false; // or true, depending on your needs
+        
+        for (int i = 1; i < array.length; i++) {
+            if (array[i] == null || !first.getClass().equals(array[i].getClass())) {
+                return false;
+            }
+        }
+        return true;
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+    // Check if filename is provided
+    if (args.length == 0) {
+        System.err.println("Usage: java YourClassName <filename.kls>");
+        System.err.println("Example: java YourClassName source.kls");
+        System.err.println("Example: java YourClassName /storage/F717-19EC/source.kls");
+        System.exit(1);
+    }
+    
+    String filename = args[0];
+    
+    // Validate file extension
+    if (!filename.toLowerCase().endsWith(".kls")) {
+        System.err.println("Error: File must have .kls extension");
+        System.err.println("Provided file: " + filename);
+        System.exit(1);
+    }
+    
+    try {
+        // Read source code from the provided file path
+        Path path = Paths.get(filename);
+        
+        // Check if file exists
+        if (!Files.exists(path)) {
+            System.err.println("Error: File not found - " + filename);
+            System.exit(1);
+        }
+        
+        String source = Files.readString(path);
+        
+        // Detect language and translate to Bangla
+        String translatedSource = LanguageTranslator.translateToBangla(source);
+        //    System.out.println("Translated code:\n" + translatedSource); For debugging only
+        
+        // Lexical analysis
+        Lexer lexer = new Lexer(translatedSource);
+        List<Token> tokens = lexer.scanTokens();
+        
+        // Parsing
+        Parser parser = new Parser(tokens);
+        List<Stmt> statements = parser.parse();
+        
+        // Interpretation
+        Interpreter interpreter = new Interpreter();
+        interpreter.interpret(statements);
+        
+    } catch (IOException e) {
+        System.err.println("Error reading file '" + filename + "': " + e.getMessage());
+        System.exit(1);
+    } catch (RuntimeException e) {
+        System.err.println("Error: " + e.getMessage());
+        System.exit(1);
+    }
+}
+}
+
+
