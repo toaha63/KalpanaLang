@@ -55,7 +55,7 @@ KalpanaLang is an interpreter-based programming language designed to allow progr
    ```sh
    javac *.java
    ```
-3. Create a source file (e.g., `source.bangla`) with your code
+3. Create a source file (e.g., `Program.kls`) with your code
 4. Run the interpreter:
    ```sh
    java Main
@@ -64,12 +64,12 @@ KalpanaLang is an interpreter-based programming language designed to allow progr
 ## Example Programs
 
 ### Hello World
-```bangla
+```KalpanaLang
 দেখাও("হ্যালো বিশ্ব!");
 ```
 
 ### Fibonacci Series
-```bangla
+```KalpanaLang
 পূর্ণসংখ্যা n = 10;
 পূর্ণসংখ্যার_অ্যারে fib[n];
 
