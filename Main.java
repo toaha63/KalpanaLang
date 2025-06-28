@@ -16,6 +16,7 @@ class LanguageTranslator {
     static {
         // BN -> BN
         banglaToBangla.put("দেখাও", "দেখাও");
+        banglaToBangla.put("শুরুতে_যাও", "শুরুতে_যাও");
         banglaToBangla.put("পূর্ণসংখ্যা", "পূর্ণসংখ্যা");
         banglaToBangla.put("ভগ্নাংশ", "ভগ্নাংশ");
         banglaToBangla.put("বাক্য", "বাক্য");
@@ -38,10 +39,12 @@ class LanguageTranslator {
         banglaToBangla.put("অ্যারের_আকার", "অ্যারের_আকার");
         banglaToBangla.put("বাবল_সর্ট", "বাবল_সর্ট");
         banglaToBangla.put("কুইক_সর্ট", "কুইক_সর্ট");
-    //    banglaToBangla.put("বাইনারি_সার্চ", "বাইনারি_সার্চ");
+        banglaToBangla.put("বাইনারি_সার্চ", "বাইনারি_সার্চ");
         banglaToBangla.put("বুলিয়ানের_অ্যারে", "বুলিয়ানের_অ্যারে");
-
+        banglaToBangla.put("ভ্যারিয়েবল_মুছো", "ভ্যারিয়েবল_মুছো");
         // EN -> BN
+        englishToBangla.put("goto_start", "শুরুতে_যাও");
+        englishToBangla.put("restart", "শুরুতে_যাও");
         englishToBangla.put("print", "দেখাও");
         englishToBangla.put("show", "দেখাও");
         englishToBangla.put("int", "পূর্ণসংখ্যা");
@@ -75,7 +78,9 @@ class LanguageTranslator {
         englishToBangla.put("quick_sort", "কুইক_সর্ট");
         englishToBangla.put("binary_search", "বাইনারি_সার্চ");
         englishToBangla.put("boolean_array", "বুলিয়ানের_অ্যারে");
-
+        englishToBangla.put("delete_var", "ভ্যারিয়েবল_মুছো");
+        englishToBangla.put("remove_var", "ভ্যারিয়েবল_মুছো");
+    
         // Russian to Bangla
         russianToBangla.put("печать", "দেখাও");
         russianToBangla.put("показать", "দেখাও");
@@ -109,7 +114,8 @@ class LanguageTranslator {
         russianToBangla.put("быстрая_сортировка", "কুইক_সর্ট");
         russianToBangla.put("бинарный_поиск", "বাইনারি_সার্চ");
         russianToBangla.put("массив_булевых", "বুলিয়ানের_অ্যারে");
-    
+        russianToBangla.put("удалить_переменную", "ভ্যারিয়েবল_মুছো");
+        russianToBangla.put("вернуться_в_начало", "শুরুতে_যাও");
         // Hindi to Bangla
         hindiToBangla.put("प्रिंट", "দেখাও");
         hindiToBangla.put("दिखाएं", "দেখাও");
@@ -139,7 +145,9 @@ class LanguageTranslator {
         hindiToBangla.put("बबल_क्रमबद्ध", "বাবল_সর্ট");
         hindiToBangla.put("त्वरित_क्रमबद्ध", "কুইক_সর্ট");
         hindiToBangla.put("द्विआधारी_खोज", "বাইনারি_সার্চ");
+        hindiToBangla.put("चर_हटाएं", "ভ্যারিয়েবল_মুছো");
         hindiToBangla.put("बूलियन_सरणी", "বুলিয়ানের_অ্যারে");
+        hindiToBangla.put("शुरू_पर_जाएं", "শুরুতে_যাও");
     }
 
     public static String translateToBangla(String sourceCode) {
@@ -310,7 +318,8 @@ enum TokenType {
     FUNCTION("ফাংশন"),
     RETURN("ফেরত"),
     VOID("খালি"),
-
+    GO_TO_START("শুরুতে_যাও"),
+    DELETE_VAR("ভ্যারিয়েবল_মুছো"),
     BOOLEAN_ARRAY("বুলিয়ানের_অ্যারে"),
     
     // Literals
@@ -1265,7 +1274,14 @@ private Expr primary() {
     if (match(TokenType.FALSE)) return new Literal(false);
     if (match(TokenType.TRUE)) return new Literal(true);
     if (match(TokenType.NIL)) return new Literal(null);
-    
+        if (match(TokenType.GO_TO_START)) {
+        return goToStartCall();
+    }
+    if (match(TokenType.DELETE_VAR)) {
+        return deleteVarCall();
+    }
+
+
     if (match(TokenType.INTEGER_LITERAL, TokenType.FLOAT_LITERAL, TokenType.STRING_LITERAL)) {
         Object value = previous().literal;
         // Convert to BigDecimal if it's a number
@@ -1317,6 +1333,25 @@ private Expr primary() {
     }
     
     throw new RuntimeException("Expect expression.");
+}
+
+private Expr goToStartCall() {
+    consume(TokenType.LEFT_PAREN, "Expect '(' after 'শুরুতে_যাও'");
+    consume(TokenType.RIGHT_PAREN, "Expect ')' after 'শুরুতে_যাও'");
+    return new Call(new Variable(new Token(TokenType.IDENTIFIER, "শুরুতে_যাও", null, previous().line)), 
+                   Collections.emptyList());
+}
+private Expr deleteVarCall() {
+    consume(TokenType.LEFT_PAREN, "Expect '(' after 'ভ্যারিয়েবল_মুছো'");
+    Expr variable = expression();
+    consume(TokenType.RIGHT_PAREN, "Expect ')' after variable name");
+    
+    if (!(variable instanceof Variable)) {
+        throw new RuntimeException("Only variable names can be passed to 'ভ্যারিয়েবল_মুছো'");
+    }
+    
+    return new Call(new Variable(new Token(TokenType.IDENTIFIER, "ভ্যারিয়েবল_মুছো", null, previous().line)), 
+                   Collections.singletonList(variable));
 }
 
 private Expr binarySearchCall() {
@@ -1433,6 +1468,24 @@ void defineFunction(String name, Function function) {
         if (enclosing != null) return enclosing.getFunction(name);
         throw new RuntimeException("Undefined function '" + name.lexeme + "'");
     }
+    void deleteVariable(Token name) {
+        if (values.containsKey(name.lexeme)) {
+            values.remove(name.lexeme);
+            return;
+        }
+        if (arrays.containsKey(name.lexeme)) {
+            arrays.remove(name.lexeme);
+            return;
+        }
+
+        if (enclosing != null) {
+            enclosing.deleteVariable(name);
+            return;
+        }
+
+        throw new RuntimeException("Undefined variable '" + name.lexeme + "' cannot be deleted");
+    }
+
 
 
     void define(String name, Object value) {
@@ -1525,23 +1578,43 @@ Object getArrayElement(Token name, int index) {
         throw new RuntimeException("Undefined array '" + name.lexeme + "'");
     }
 }
+class GoToStartException extends RuntimeException {
+    public GoToStartException()
+    {
+        
+    }
+}
 
 class BreakException extends RuntimeException {}
 class ContinueException extends RuntimeException {}
 
 class Interpreter implements ExprVisitor<Object>, StmtVisitor<Void> {
     private Environment environment = new Environment();
+    private List<Stmt> statements; // Store the parsed statements
+    private String sourceCode; // Store the original source code
 
     void interpret(List<Stmt> statements) {
+        this.statements = statements;
         try {
-            for (Stmt statement : statements) {
-                execute(statement);
+            while (true) { // Loop to allow restarting
+                try {
+                    for (Stmt statement : statements) {
+                        execute(statement);
+                    }
+                    break; // Exit loop if no restart was called
+                } catch (GoToStartException e) {
+                    // Reset environment and restart
+                    environment = new Environment();
+                    System.out.println("Restarting interpretation...");
+                    continue;
+                }
             }
         } catch (RuntimeException error) {
             System.err.println("Runtime error: " + error.getMessage());
             System.exit(1);
         }
     }
+
 
     private void execute(Stmt stmt) {
         stmt.accept(this);
@@ -1580,6 +1653,31 @@ public Object visitCallExpr(Call expr) {
     if (expr.callee() instanceof Variable) {
         String functionName = ((Variable)expr.callee()).name().lexeme;
         
+        // Handle delete variable
+        if (functionName.equals("ভ্যারিয়েবল_মুছো")) {
+            if (expr.arguments().size() != 1) {
+                throw new RuntimeException("'ভ্যারিয়েবল_মুছো' expects exactly 1 argument");
+            }
+            
+            Expr arg = expr.arguments().get(0);
+            if (!(arg instanceof Variable)) {
+                throw new RuntimeException("'ভ্যারিয়েবল_মুছো' can only delete variables, not expressions");
+            }
+            
+            Token varName = ((Variable)arg).name();
+            environment.deleteVariable(varName);
+            return null;
+        }
+        
+
+        // Handle go to start
+        if (functionName.equals("শুরুতে_যাও")) {
+            if (!expr.arguments().isEmpty()) {
+                throw new RuntimeException("'শুরুতে_যাও' takes no arguments");
+            }
+            throw new GoToStartException();
+        }
+ 
         // Handle binary search
         if (functionName.equals("বাইনারি_সার্চ")) {
             if (expr.arguments().size() != 2) {
@@ -2533,5 +2631,3 @@ public class Main {
     }
 }
 }
-
-
