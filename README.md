@@ -69,12 +69,16 @@ KalpanaLang is an interpreter-based programming language designed to allow progr
    ```sh
    java Main Demo.kls
    ```
+5. To run jar file directly:
+    ```sh
+    java -jar KalpanaLang.jar Demo.kls
+    ```
 
 ## Example Programs
 
 ### Hello World
 ```KalpanaLang
-দেখাও("হ্যালো বিশ্ব!");
+দেখাও("হ্যালো বিশ্ব!\n");
 ```
 
 ### Fibonacci Series
