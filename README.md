@@ -42,10 +42,21 @@ KalpanaLang is an interpreter-based programming language designed to allow progr
 - `কুইক_সর্ট` (Quick sort)
 - `বাইনারি_সার্চ` (Binary search)
 
+### Built-in functions:
+- `বন্ধ` (exit)
+- `কনসোল_মুছো` (clearConsole)
+- `ভ্যারিয়েবল_মুছো` (delete_var)
+- `প্রেসে_থামো` (stopOnEnter)
+- `প্রেসে_শেষ` (hold)
+- `থামো` (sleep)
+
+### Library support
+- `math.klm`
+
 ## Getting Started
 
 ### Prerequisites
-- Java 8 or higher
+- Java 21 or higher
 
 ### Running the Interpreter
 1. Clone this repository
@@ -56,7 +67,7 @@ KalpanaLang is an interpreter-based programming language designed to allow progr
 3. Create a source file (e.g., `Demo.kls`) with your code
 4. Run the interpreter:
    ```sh
-   java Main
+   java Main Demo.kls
    ```
 
 ## Example Programs
@@ -111,11 +122,12 @@ fib[2] = 1;
 
 ```
 KalpanaLang/
-├── Main.java            - Main entry point
-├── KalpanaLang.jar - jar file of interpreter
-├── LICENSE - License file
-├── Demo.kls -  An example of my language, kls means KalpanaLangSource
-└── README.md            - This file
+├── Main.java                - Main entry point
+├── KalpanaLang.jar   - jar file of interpreter
+├── LICENSE                 - License file
+├── Demo.kls                - An example of my language, kls means KalpanaLangSource
+├── math.klm                - A math library for interpreter. klm means KalpanaLangModiule.
+└── README.md           - This file
 ```
 
 ## Contributing
@@ -157,6 +169,12 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 **Special Thanks To:**
 - All beta testers and early adopters
 - The open source community for their invaluable resources
+
+
+### Known bugs:
+1. Function আকার_বাড়াও() isn't working inside a loop.
+2. Need to update language pack in class LanguageTranslator.
+3. Can't pass array as function argument.
 
 ### Used Tools & Technologies
 1. Termux
