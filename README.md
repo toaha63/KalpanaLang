@@ -73,7 +73,14 @@ KalpanaLang is an interpreter-based programming language designed to allow progr
     ```sh
     java -jar KalpanaLang.jar Demo.kls
     ```
+6. Or, you can run directly by calling Makefile:
+    ```bash
+    make
 
+    make run FILE=Demo.kls
+    
+    make clean
+    ```
 ## Example Programs
 
 ### Hello World
@@ -131,10 +138,11 @@ fib[2] = 1;
 ```
 KalpanaLang/
 ├── Main.java               - Main entry point
-├── KalpanaLang.jar         - jar file of interpreter
+├── KalpanaLang.jar         -Signed jar file of interpreter
 ├── LICENSE                 - License file
 ├── Demo.kls                - An example of my language, kls means KalpanaLangSource
-├── math.klm                - A math library for interpreter. klm means KalpanaLangModiule.
+├── math.klm                - A math library for interpreter. klm means KalpanaLangModiule
+├── Makefile                - Automatic source building
 └── README.md               - This file
 ```
 
