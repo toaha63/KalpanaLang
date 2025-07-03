@@ -1,3 +1,4 @@
+
 import java.io.*;
 import java.math.*;
 import java.nio.file.*;
@@ -50,6 +51,17 @@ class LanguageTranslator
         banglaToBangla.put("বন্ধ", "বন্ধ");
         banglaToBangla.put("প্রেসে_থামো", "প্রেসে_থামো");
         banglaToBangla.put("প্রেসে_শেষ", "প্রেসে_শেষ");
+        banglaToBangla.put("০", "0");
+        banglaToBangla.put("১", "1");
+        banglaToBangla.put("২", "2");
+        banglaToBangla.put("৩", "3");
+        banglaToBangla.put("৪", "4");
+        banglaToBangla.put("৫", "5");
+        banglaToBangla.put("৬", "6");
+        banglaToBangla.put("৭", "7");
+        banglaToBangla.put("৮", "8");
+        banglaToBangla.put("৯", "9");
+
         // EN -> BN
         englishToBangla.put("increase_size", "আকার_বাড়াও");
         englishToBangla.put("resize_array", "আকার_বাড়াও");
@@ -391,6 +403,13 @@ enum TokenType
     EQUAL_EQUAL("=="),
     BANG_EQUAL("!="),
     BANG("!"),
+    BITWISE_AND("&"),
+    BITWISE_OR("|"),
+    BITWISE_XOR("^"),
+    BITWISE_NOT("~"),
+    LEFT_SHIFT("<<"),
+    RIGHT_SHIFT(">>"),
+    UNSIGNED_RIGHT_SHIFT(">>>"),
     LESS("<"),
     LESS_EQUAL("<="),
     GREATER(">"),
@@ -564,22 +583,42 @@ class Lexer
             addToken(match('=') ? TokenType.EQUAL_EQUAL : TokenType.ASSIGN);
             break;
         case '<':
-            addToken(match('=') ? TokenType.LESS_EQUAL : TokenType.LESS);
+            if (match('<'))
+            {
+                addToken(TokenType.LEFT_SHIFT);
+            } else
+            {
+                addToken(match('=') ? TokenType.LESS_EQUAL : TokenType.LESS);
+            }
             break;
         case '>':
-            addToken(match('=') ? TokenType.GREATER_EQUAL : TokenType.GREATER);
-            break;
-        case '&':
-            if (match('&'))
+            if (match('>'))
             {
-                addToken(TokenType.AND);
+                if (match('>'))
+                {
+                    addToken(TokenType.UNSIGNED_RIGHT_SHIFT);
+                } else
+                {
+                    addToken(TokenType.RIGHT_SHIFT);
+                }
+            } else
+            {
+                addToken(match('=') ? TokenType.GREATER_EQUAL : TokenType.GREATER);
             }
+            break;
+
+
+        case '&':
+            addToken(match('&') ? TokenType.AND : TokenType.BITWISE_AND);
             break;
         case '|':
-            if (match('|'))
-            {
-                addToken(TokenType.OR);
-            }
+            addToken(match('|') ? TokenType.OR : TokenType.BITWISE_OR);
+            break;
+        case '^':
+            addToken(TokenType.BITWISE_XOR);
+            break;
+        case '~':
+            addToken(TokenType.BITWISE_NOT);
             break;
         case ' ':
         case '\r':
@@ -816,7 +855,6 @@ class Lexer
 interface Expr
 {
     <R> R accept(ExprVisitor<R> visitor);
-
 }
 
 interface ExprVisitor<R>
@@ -831,7 +869,6 @@ interface ExprVisitor<R>
     R visitArrayAssignmentExpr(ArrayAssignment expr);
     R visitArraySizeExpr(ArraySize expr);
     R visitCallExpr(Call expr);
-
 }
 
 record Binary(Expr left, Token operator, Expr right) implements Expr
@@ -973,7 +1010,7 @@ record If(Expr condition, Stmt thenBranch, List<ElseIf> elseIfBranches, Stmt els
 
 record ElseIf(Expr condition, Stmt statement)
 {
-    }
+}
 
 record Println(Expr expression) implements Stmt
 {
@@ -1055,11 +1092,18 @@ record Input(TokenType expectedType, Token variable) implements Stmt
         return visitor.visitInputStmt(this);
     }
 }
+
 record Function(Token name, Token returnType, List<Token> parameters, List<Stmt> body) implements Stmt
 {
     @Override public <R> R accept(StmtVisitor<R> visitor)
     {
         return visitor.visitFunctionStmt(this);
+    }
+
+    // Helper method to get parameter types
+    public TokenType[] getParameterTypes()
+    {
+        return parameters.stream().map(t -> t.type).toArray(TokenType[]::new);
     }
 }
 
@@ -1151,7 +1195,9 @@ class Parser
             returnType = previous();
             returnType.type = TokenType.VOID;
         }
-        else if(match(TokenType.INTEGER, TokenType.FLOAT, TokenType.STRING, TokenType.BOOLEAN))
+        else if(match(TokenType.INTEGER, TokenType.FLOAT, TokenType.STRING, TokenType.BOOLEAN,
+                      TokenType.INTEGER_ARRAY, TokenType.FLOAT_ARRAY,
+                      TokenType.STRING_ARRAY, TokenType.BOOLEAN_ARRAY))
         {
             returnType = previous();
         }
@@ -1175,7 +1221,9 @@ class Parser
                     throw new RuntimeException("Can't have more than 30000 parameters.");
                 }
 
-                if (match(TokenType.INTEGER, TokenType.FLOAT, TokenType.STRING, TokenType.BOOLEAN))
+                if (match(TokenType.INTEGER, TokenType.FLOAT, TokenType.STRING, TokenType.BOOLEAN,
+                          TokenType.INTEGER_ARRAY, TokenType.FLOAT_ARRAY,
+                          TokenType.STRING_ARRAY, TokenType.BOOLEAN_ARRAY))
                 {
                     Token type = previous();
                     Token param = consume(TokenType.IDENTIFIER, "Expect parameter name.");
@@ -1323,14 +1371,14 @@ class Parser
         return expressionStatement();
     }
     private Stmt waitForEnterStatement()
-   {
+    {
         consume(TokenType.LEFT_PAREN, "Expect '(' after 'প্রেসে_থামো'");
         consume(TokenType.RIGHT_PAREN, "Expect ')'");
         consume(TokenType.SEMICOLON, "Expect ';' after statement");
         return new WaitForEnter();
     }
     private Stmt waitForEndStatement()
-   {
+    {
         consume(TokenType.LEFT_PAREN, "Expect '(' after 'প্রেসে_থামো'");
         consume(TokenType.RIGHT_PAREN, "Expect ')'");
         consume(TokenType.SEMICOLON, "Expect ';' after statement");
@@ -1574,8 +1622,56 @@ class Parser
 
     private Expr equality()
     {
-        Expr expr = comparison();
+        Expr expr = bitwiseAnd();
         while (match(TokenType.EQUAL_EQUAL, TokenType.BANG_EQUAL))
+        {
+            Token operator = previous();
+            Expr right = bitwiseAnd();
+            expr = new Binary(expr, operator, right);
+        }
+        return expr;
+    }
+
+    private Expr bitwiseAnd()
+    {
+        Expr expr = bitwiseXor();
+        while (match(TokenType.BITWISE_AND))
+        {
+            Token operator = previous();
+            Expr right = bitwiseXor();
+            expr = new Binary(expr, operator, right);
+        }
+        return expr;
+    }
+
+    private Expr bitwiseXor()
+    {
+        Expr expr = bitwiseOr();
+        while (match(TokenType.BITWISE_XOR))
+        {
+            Token operator = previous();
+            Expr right = bitwiseOr();
+            expr = new Binary(expr, operator, right);
+        }
+        return expr;
+    }
+
+    private Expr bitwiseOr()
+    {
+        Expr expr = shift();
+        while (match(TokenType.BITWISE_OR))
+        {
+            Token operator = previous();
+            Expr right = shift();
+            expr = new Binary(expr, operator, right);
+        }
+        return expr;
+    }
+
+    private Expr shift()
+    {
+        Expr expr = comparison();
+        while (match(TokenType.LEFT_SHIFT, TokenType.RIGHT_SHIFT, TokenType.UNSIGNED_RIGHT_SHIFT))
         {
             Token operator = previous();
             Expr right = comparison();
@@ -1622,7 +1718,8 @@ class Parser
 
     private Expr unary()
     {
-        if (match(TokenType.MINUS, TokenType.BANG, TokenType.INCREMENT, TokenType.DECREMENT))
+        if (match(TokenType.MINUS, TokenType.BANG, TokenType.INCREMENT,
+                  TokenType.DECREMENT, TokenType.BITWISE_NOT))
         {
             Token operator = previous();
             Expr right = unary();
@@ -1678,7 +1775,8 @@ class Parser
         if (match(TokenType.FALSE)) return new Literal(false);
         if (match(TokenType.TRUE)) return new Literal(true);
         if (match(TokenType.NIL)) return new Literal(null);
-        if (match(TokenType.INCREASE_SIZE)) {
+        if (match(TokenType.INCREASE_SIZE))
+        {
             return increaseSizeCall();
         }
         if (match(TokenType.GO_TO_START))
@@ -1909,10 +2007,11 @@ class Parser
 
 class Environment
 {
-    private final Environment enclosing;
+    public final Environment enclosing;
     private final Map<String, Object> values = new LinkedHashMap<>();
-    private final Map<String, Object[]> arrays = new LinkedHashMap<>();
+    public final Map<String, Object[]> arrays = new LinkedHashMap<>();
     private final Map<String, Function> functions = new LinkedHashMap<>();
+    private final Map<String, TokenType> arrayTypes = new HashMap<>();
 
     Environment()
     {
@@ -1932,7 +2031,7 @@ class Environment
     public Environment deepCopy()
     {
         Environment copy = new Environment(this.enclosing != null ? this.enclosing.deepCopy() : null);
-        
+
         // Deep copy variables
         for (Map.Entry<String, Object> entry : this.values.entrySet())
         {
@@ -1955,7 +2054,7 @@ class Environment
                 copy.values.put(entry.getKey(), value);
             }
         }
-        
+
         // Deep copy arrays
         for (Map.Entry<String, Object[]> entry : this.arrays.entrySet())
         {
@@ -1964,10 +2063,10 @@ class Environment
             System.arraycopy(originalArray, 0, copiedArray, 0, originalArray.length);
             copy.arrays.put(entry.getKey(), copiedArray);
         }
-        
+
         // Copy functions (they can be shared as they're immutable once defined)
         copy.functions.putAll(this.functions);
-        
+
         return copy;
     }
 
@@ -2009,9 +2108,10 @@ class Environment
         values.put(name, value);
     }
 
-    void defineArray(String name, Object[] array)
+    void defineArray(String name, TokenType type, Object[] array)
     {
         arrays.put(name, array);
+        arrayTypes.put(name, type);
     }
 
     Object get(Token name)
@@ -2081,6 +2181,17 @@ class Environment
 
         throw new RuntimeException("Undefined variable '" + name.lexeme + "'");
     }
+    TokenType getArrayType(String name)
+    {
+        if (arrayTypes.containsKey(name))
+        {
+            return arrayTypes.get(name);
+        }
+        if (enclosing != null) return enclosing.getArrayType(name);
+        return null;
+    }
+
+
 
     void assignArrayElement(Token name, int index, Object value)
     {
@@ -2128,8 +2239,12 @@ class ClearScreenException extends RuntimeException
 
     }
 }
-class BreakException extends RuntimeException{}
-class ContinueException extends RuntimeException{}
+class BreakException extends RuntimeException
+{
+    }
+class ContinueException extends RuntimeException
+{
+    }
 
 class Interpreter implements ExprVisitor<Object>, StmtVisitor<Void>
 {
@@ -2142,7 +2257,7 @@ class Interpreter implements ExprVisitor<Object>, StmtVisitor<Void>
     {
         this.statements = statements;
         this.originalEnvironment = environment.deepCopy(); // Store initial environment
-        
+
         try
         {
             while (true)
@@ -2169,7 +2284,7 @@ class Interpreter implements ExprVisitor<Object>, StmtVisitor<Void>
             System.exit(1);
         }
     }
-    
+
 
 
     private void execute(Stmt stmt)
@@ -2199,6 +2314,7 @@ class Interpreter implements ExprVisitor<Object>, StmtVisitor<Void>
     @Override
     public Void visitFunctionStmt(Function stmt)
     {
+        // Store the function with its parameter types
         environment.defineFunction(stmt.name().lexeme, stmt);
         return null;
     }
@@ -2207,7 +2323,10 @@ class Interpreter implements ExprVisitor<Object>, StmtVisitor<Void>
     public Void visitReturnStmt(Return stmt)
     {
         Object value = null;
-        if (stmt.value() != null) value = evaluate(stmt.value());
+        if (stmt.value() != null)
+        {
+            value = evaluate(stmt.value());
+        }
         throw new ReturnException(value);
     }
 
@@ -2218,7 +2337,9 @@ class Interpreter implements ExprVisitor<Object>, StmtVisitor<Void>
         {
             System.in.read(); // Wait for any key press
             System.in.skip(System.in.available()); // Clear any remaining input
-        } catch(Exception ex)
+            System.gc();
+        }
+        catch(Exception ex)
         {
             System.err.println("Error reading input: " + ex.getMessage());
         }
@@ -2246,12 +2367,9 @@ class Interpreter implements ExprVisitor<Object>, StmtVisitor<Void>
                 }
             }
         }).start();
-        
+
         return null;
     }
-
-
-
 
     @Override
     public Object visitCallExpr(Call expr)
@@ -2268,50 +2386,60 @@ class Interpreter implements ExprVisitor<Object>, StmtVisitor<Void>
                 {
                     throw new RuntimeException("'বন্ধ' expects exactly 1 argument (error code)");
                 }
-
                 Object errorCode = evaluate(expr.arguments().get(0));
                 if (!(errorCode instanceof BigDecimal))
                 {
                     throw new RuntimeException("Error code must be an integer");
                 }
-
                 int code = ((BigDecimal)errorCode).intValue();
                 System.exit(code);
-                return null; // Don't, line won't actually be reached. It's just a formality.
+                return null;
             }
 
-        if (functionName.equals("আকার_বাড়াও")) {
-    if (expr.arguments().size() != 2) {
-        throw new RuntimeException("'আকার_বাড়াও' expects exactly 2 arguments (array, new size)");
-    }
+            // Handle আকার_বাড়াও function
+            if (functionName.equals("আকার_বাড়াও"))
+            {
+                if (expr.arguments().size() != 2)
+                {
+                    throw new RuntimeException("'আকার_বাড়াও' expects exactly 2 arguments (array, new size)");
+                }
+                Token arrayName = null;
+                if (expr.arguments().get(0) instanceof Variable)
+                {
+                    arrayName = ((Variable)expr.arguments().get(0)).name();
+                }
+                Object array = evaluate(expr.arguments().get(0));
+                Object sizeObj = evaluate(expr.arguments().get(1));
+                if (!(array instanceof Object[]))
+                {
+                    throw new RuntimeException("First argument must be an array");
+                }
+                if (!(sizeObj instanceof BigDecimal))
+                {
+                    throw new RuntimeException("Second argument must be an integer");
+                }
+                int additionalSize = ((BigDecimal)sizeObj).intValue();
+                if (additionalSize < 0)
+                {
+                    throw new RuntimeException("Size increase cannot be negative");
+                }
+                Object[] resizedArray = (Object[])resizeArray(array, additionalSize);
+                if (arrayName != null)
+                {
+                    Environment env = environment;
+                    while (env != null)
+                    {
+                        if (env.arrays.containsKey(arrayName.lexeme))
+                        {
+                            env.defineArray(arrayName.lexeme, env.getArrayType(arrayName.lexeme), resizedArray);
 
-    Object array = evaluate(expr.arguments().get(0));
-    Object sizeObj = evaluate(expr.arguments().get(1));
-
-    if (!(array instanceof Object[])) {
-        throw new RuntimeException("First argument must be an array");
-    }
-    if (!(sizeObj instanceof BigDecimal)) {
-        throw new RuntimeException("Second argument must be an integer");
-    }
-
-    int additionalSize = ((BigDecimal)sizeObj).intValue();
-    if (additionalSize < 0) {
-        throw new RuntimeException("Size increase cannot be negative");
-    }
-
-    Object[] resizedArray = (Object[])resizeArray(array, additionalSize);
-
-    // Update the array in the environment if the argument was a variable
-    if (expr.arguments().get(0) instanceof Variable) {
-        Token arrayName = ((Variable)expr.arguments().get(0)).name();
-        environment.defineArray(arrayName.lexeme, resizedArray);
-    }
-
-    return resizedArray;
-}
-
-
+                            break;
+                        }
+                        env = env.enclosing;
+                    }
+                }
+                return resizedArray;
+            }
 
             // Handle delete variable
             if (functionName.equals("ভ্যারিয়েবল_মুছো"))
@@ -2320,18 +2448,15 @@ class Interpreter implements ExprVisitor<Object>, StmtVisitor<Void>
                 {
                     throw new RuntimeException("'ভ্যারিয়েবল_মুছো' expects exactly 1 argument");
                 }
-
                 Expr arg = expr.arguments().get(0);
                 if (!(arg instanceof Variable))
                 {
                     throw new RuntimeException("'ভ্যারিয়েবল_মুছো' can only delete variables, not expressions");
                 }
-
                 Token varName = ((Variable)arg).name();
                 environment.deleteVariable(varName);
                 return null;
             }
-
 
             // Handle go to start
             if (functionName.equals("শুরুতে_যাও"))
@@ -2342,6 +2467,7 @@ class Interpreter implements ExprVisitor<Object>, StmtVisitor<Void>
                 }
                 throw new GoToStartException();
             }
+
             if (functionName.equals("কনসোল_মুছো"))
             {
                 if (!expr.arguments().isEmpty())
@@ -2350,7 +2476,7 @@ class Interpreter implements ExprVisitor<Object>, StmtVisitor<Void>
                 }
                 try
                 {
-                    if(System.getProperty("os.name").toLowerCase().contains("win"))
+                    if (System.getProperty("os.name").toLowerCase().contains("win"))
                     {
                         new ProcessBuilder("cmd", "/c", "cls").inheritIO().start().waitFor();
                     } else
@@ -2361,10 +2487,7 @@ class Interpreter implements ExprVisitor<Object>, StmtVisitor<Void>
                 {
                     System.err.println("Something went wrong to clear screen");
                 }
-                finally
-                {
-                    return null;
-                }
+                return null;
             }
 
             // Handle binary search
@@ -2376,12 +2499,10 @@ class Interpreter implements ExprVisitor<Object>, StmtVisitor<Void>
                 }
                 Object array = evaluate(expr.arguments().get(0));
                 Object key = evaluate(expr.arguments().get(1));
-
                 if (!(array instanceof Object[]))
                 {
                     throw new RuntimeException("First argument must be an array");
                 }
-
                 return ArrayManipulator.binarySearch((Object[])array, key);
             }
 
@@ -2393,14 +2514,12 @@ class Interpreter implements ExprVisitor<Object>, StmtVisitor<Void>
                     throw new RuntimeException("Expected 1 argument for bubble sort");
                 }
                 Object array = evaluate(expr.arguments().get(0));
-
                 if (!(array instanceof Object[]))
                 {
                     throw new RuntimeException("Argument must be an array");
                 }
-
                 ArrayManipulator.bubbleSort((Object[])array);
-                return null; // Sort modifies array in-place
+                return null;
             }
 
             // Handle quick sort
@@ -2411,20 +2530,17 @@ class Interpreter implements ExprVisitor<Object>, StmtVisitor<Void>
                     throw new RuntimeException("Expected 1 argument for quick sort");
                 }
                 Object array = evaluate(expr.arguments().get(0));
-
                 if (!(array instanceof Object[]))
                 {
                     throw new RuntimeException("Argument must be an array");
                 }
-
                 ArrayManipulator.quickSort((Object[])array);
-                return null; // Sort modifies array in-place
+                return null;
             }
         }
 
-        // Handle user-defined functions (existing functionality)
+        // Handle user-defined functions
         Object callee = evaluate(expr.callee());
-
         if (!(callee instanceof Function))
         {
             throw new RuntimeException("Can only call functions.");
@@ -2432,21 +2548,139 @@ class Interpreter implements ExprVisitor<Object>, StmtVisitor<Void>
 
         Function function = (Function)callee;
         List<Object> arguments = new Vector<>();
-        for (Expr argument : expr.arguments())
-        {
-            arguments.add(evaluate(argument));
-        }
 
-        if (arguments.size() != function.parameters().size())
+        // Check argument count matches parameter count
+        if (expr.arguments().size() != function.parameters().size())
         {
             throw new RuntimeException("Expected " + function.parameters().size() +
-                                       " arguments but got " + arguments.size() + ".");
+                                       " arguments but got " + expr.arguments().size() + ".");
         }
 
+        // Evaluate arguments with strict type checking
+        for (int i = 0; i < expr.arguments().size(); i++)
+        {
+            Expr argument = expr.arguments().get(i);
+            Object value = evaluate(argument);
+            Token param = function.parameters().get(i);
+
+            // Strict type checking
+            switch (param.type)
+            {
+            case INTEGER:
+                if (!(value instanceof BigDecimal))
+                {
+                    throw new RuntimeException("Parameter " + (i+1) + " must be an integer");
+                }
+                if (((BigDecimal)value).scale() > 0)
+                {
+                    throw new RuntimeException("Parameter " + (i+1) + " must be an integer (no decimal places)");
+                }
+                value = ((BigDecimal)value).setScale(0, RoundingMode.DOWN);
+                break;
+
+            case FLOAT:
+                if (!(value instanceof BigDecimal))
+                {
+                    throw new RuntimeException("Parameter " + (i+1) + " must be a float");
+                }
+                break;
+
+            case STRING:
+                if (!(value instanceof String))
+                {
+                    throw new RuntimeException("Parameter " + (i+1) + " must be a string");
+                }
+                break;
+
+            case BOOLEAN:
+                if (!(value instanceof Boolean))
+                {
+                    throw new RuntimeException("Parameter " + (i+1) + " must be a boolean");
+                }
+                break;
+
+            case INTEGER_ARRAY:
+                if (!(value instanceof Object[]))
+                {
+                    throw new RuntimeException("Parameter " + (i+1) + " must be an integer array");
+                }
+                for (Object element : (Object[])value)
+                {
+                    if (!(element instanceof BigDecimal))
+                    {
+                        throw new RuntimeException("All elements in integer array must be integers");
+                    }
+                    if (((BigDecimal)element).scale() > 0)
+                    {
+                        throw new RuntimeException("All elements in integer array must be integers (no decimal places)");
+                    }
+                }
+                break;
+
+            case FLOAT_ARRAY:
+                if (!(value instanceof Object[]))
+                {
+                    throw new RuntimeException("Parameter " + (i+1) + " must be a float array");
+                }
+                for (Object element : (Object[])value)
+                {
+                    if (!(element instanceof BigDecimal))
+                    {
+                        throw new RuntimeException("All elements in float array must be numbers");
+                    }
+                }
+                break;
+
+            case STRING_ARRAY:
+                if (!(value instanceof Object[]))
+                {
+                    throw new RuntimeException("Parameter " + (i+1) + " must be a string array");
+                }
+                for (Object element : (Object[])value)
+                {
+                    if (!(element instanceof String))
+                    {
+                        throw new RuntimeException("All elements in string array must be strings");
+                    }
+                }
+                break;
+
+            case BOOLEAN_ARRAY:
+                if (!(value instanceof Object[]))
+                {
+                    throw new RuntimeException("Parameter " + (i+1) + " must be a boolean array");
+                }
+                for (Object element : (Object[])value)
+                {
+                    if (!(element instanceof Boolean))
+                    {
+                        throw new RuntimeException("All elements in boolean array must be booleans");
+                    }
+                }
+                break;
+            }
+            arguments.add(value);
+        }
+
+        // Create new environment for function call
         Environment environment = new Environment(this.environment);
         for (int i = 0; i < function.parameters().size(); i++)
         {
-            environment.define(function.parameters().get(i).lexeme, arguments.get(i));
+            String paramName = function.parameters().get(i).lexeme;
+            Object value = arguments.get(i);
+
+            // Handle array parameters specially
+            switch (function.parameters().get(i).type)
+            {
+            case INTEGER_ARRAY:
+            case FLOAT_ARRAY:
+            case STRING_ARRAY:
+            case BOOLEAN_ARRAY:
+                environment.defineArray(paramName, function.parameters().get(i).type, (Object[])value);
+                break;
+            default:
+                environment.define(paramName, value);
+            }
         }
 
         try
@@ -2454,13 +2688,108 @@ class Interpreter implements ExprVisitor<Object>, StmtVisitor<Void>
             executeBlock(function.body(), environment);
         } catch (ReturnException returnValue)
         {
+            // Return type checking
             if (function.returnType().type == TokenType.VOID && returnValue.value != null)
             {
                 throw new RuntimeException("Void function cannot return a value");
             }
-            if (function.returnType().type != TokenType.VOID && returnValue.value == null)
+            if (function.returnType().type != TokenType.VOID)
             {
-                throw new RuntimeException("Function must return a value");
+                if (returnValue.value == null)
+                {
+                    throw new RuntimeException("Function must return a value");
+                }
+                // Check return type matches declared type
+                switch (function.returnType().type)
+                {
+                case INTEGER:
+                    if (!(returnValue.value instanceof BigDecimal))
+                    {
+                        throw new RuntimeException("Function must return an integer");
+                    }
+                    return ((BigDecimal)returnValue.value).setScale(0, RoundingMode.DOWN);
+
+                case FLOAT:
+                    if (!(returnValue.value instanceof BigDecimal))
+                    {
+                        throw new RuntimeException("Function must return a float");
+                    }
+                    break;
+
+                case STRING:
+                    if (!(returnValue.value instanceof String))
+                    {
+                        throw new RuntimeException("Function must return a string");
+                    }
+                    break;
+
+                case BOOLEAN:
+                    if (!(returnValue.value instanceof Boolean))
+                    {
+                        throw new RuntimeException("Function must return a boolean");
+                    }
+                    break;
+
+                case INTEGER_ARRAY:
+                    if (!(returnValue.value instanceof Object[]))
+                    {
+                        throw new RuntimeException("Function must return an integer array");
+                    }
+                    for (Object element : (Object[])returnValue.value)
+                    {
+                        if (!(element instanceof BigDecimal))
+                        {
+                            throw new RuntimeException("All elements in returned integer array must be integers");
+                        }
+                        if (((BigDecimal)element).scale() > 0)
+                        {
+                            throw new RuntimeException("All elements in returned integer array must be integers (no decimal places)");
+                        }
+                    }
+                    break;
+
+                case FLOAT_ARRAY:
+                    if (!(returnValue.value instanceof Object[]))
+                    {
+                        throw new RuntimeException("Function must return a float array");
+                    }
+                    for (Object element : (Object[])returnValue.value)
+                    {
+                        if (!(element instanceof BigDecimal))
+                        {
+                            throw new RuntimeException("All elements in returned float array must be numbers");
+                        }
+                    }
+                    break;
+
+                case STRING_ARRAY:
+                    if (!(returnValue.value instanceof Object[]))
+                    {
+                        throw new RuntimeException("Function must return a string array");
+                    }
+                    for (Object element : (Object[])returnValue.value)
+                    {
+                        if (!(element instanceof String))
+                        {
+                            throw new RuntimeException("All elements in returned string array must be strings");
+                        }
+                    }
+                    break;
+
+                case BOOLEAN_ARRAY:
+                    if (!(returnValue.value instanceof Object[]))
+                    {
+                        throw new RuntimeException("Function must return a boolean array");
+                    }
+                    for (Object element : (Object[])returnValue.value)
+                    {
+                        if (!(element instanceof Boolean))
+                        {
+                            throw new RuntimeException("All elements in returned boolean array must be booleans");
+                        }
+                    }
+                    break;
+                }
             }
             return returnValue.value;
         }
@@ -2472,39 +2801,45 @@ class Interpreter implements ExprVisitor<Object>, StmtVisitor<Void>
         return null;
     }
 
-private Object resizeArray(Object array, int additionalSize) {
-    Object[] oldArray = (Object[])array;
-    int oldSize = oldArray.length;
-    int newSize = oldSize + additionalSize;
+    private Object resizeArray(Object array, int additionalSize)
+    {
+        Object[] oldArray = (Object[])array;
+        int oldSize = oldArray.length;
+        int newSize = oldSize + additionalSize;
 
-    // Create new array of the same type
-    Object[] newArray = (Object[])java.lang.reflect.Array.newInstance(
-        oldArray.getClass().getComponentType(), newSize);
+        // Create new array of the same type
+        Object[] newArray = (Object[])java.lang.reflect.Array.newInstance(
+                                oldArray.getClass().getComponentType(), newSize);
 
-    // Copy old elements
-    System.arraycopy(oldArray, 0, newArray, 0, Math.min(oldSize, newSize));
+        // Copy old elements
+        System.arraycopy(oldArray, 0, newArray, 0, Math.min(oldSize, newSize));
 
-    // Initialize new elements with default values
-    if (newSize > oldSize) {
-        Object defaultValue = getDefaultValue(oldArray.getClass().getComponentType());
-        for (int i = oldSize; i < newSize; i++) {
-            newArray[i] = defaultValue;
+        // Initialize new elements with default values
+        if (newSize > oldSize)
+        {
+            Object defaultValue = getDefaultValue(oldArray.getClass().getComponentType());
+            for (int i = oldSize; i < newSize; i++)
+            {
+                newArray[i] = defaultValue;
+            }
         }
-    }
 
-    return newArray;
-}
-private Object getDefaultValue(Class<?> componentType) {
-    if (componentType == BigDecimal.class) {
-        return BigDecimal.ZERO;
-    } else if (componentType == String.class) {
-        return "";
-    } else if (componentType == Boolean.class) {
-        return false;
+        return newArray;
     }
-    return null;
-}
-
+    private Object getDefaultValue(Class<?> componentType)
+    {
+        if (componentType == BigDecimal.class)
+        {
+            return BigDecimal.ZERO;
+        } else if (componentType == String.class)
+        {
+            return "";
+        } else if (componentType == Boolean.class)
+        {
+            return false;
+        }
+        return null;
+    }
 
     private static class ReturnException extends RuntimeException
     {
@@ -2717,10 +3052,12 @@ private Object getDefaultValue(Class<?> componentType) {
     @Override
     public Void visitArrayStmt(ArrayStmt stmt)
     {
+
+
         Object[] array = null;
+        int size = 0;
 
         // Determine array size
-        int size = 0;
         if (stmt.size() != null)
         {
             Object sizeValue = evaluate(stmt.size());
@@ -2731,7 +3068,6 @@ private Object getDefaultValue(Class<?> componentType) {
             size = ((BigDecimal)sizeValue).intValue();
         } else if (!stmt.initialValues().isEmpty())
         {
-            // If size not specified but initial values are, use initial values count
             size = stmt.initialValues().size();
         } else
         {
@@ -2742,23 +3078,38 @@ private Object getDefaultValue(Class<?> componentType) {
         switch (stmt.type())
         {
         case INTEGER_ARRAY:
+            array = new BigDecimal[size];
+            for (int i = 0; i < size; i++)
+            {
+                array[i] = BigDecimal.ZERO;
+            }
+            break;
         case FLOAT_ARRAY:
             array = new BigDecimal[size];
-            for (int i = 0; i < size; i++) array[i] = BigDecimal.ZERO;
+            for (int i = 0; i < size; i++)
+            {
+                array[i] = BigDecimal.ZERO;
+            }
             break;
         case STRING_ARRAY:
             array = new String[size];
-            for (int i = 0; i < size; i++) array[i] = "";
+            for (int i = 0; i < size; i++)
+            {
+                array[i] = "";
+            }
             break;
         case BOOLEAN_ARRAY:
             array = new Boolean[size];
-            for (int i = 0; i < size; i++) array[i] = false;
+            for (int i = 0; i < size; i++)
+            {
+                array[i] = false;
+            }
             break;
         default:
             throw new RuntimeException("Unknown array type");
         }
 
-        // Apply initial values if provided
+        // Apply initial values with strict type checking
         for (int i = 0; i < stmt.initialValues().size(); i++)
         {
             if (i >= array.length)
@@ -2768,37 +3119,59 @@ private Object getDefaultValue(Class<?> componentType) {
 
             Object value = evaluate(stmt.initialValues().get(i));
 
-            // Convert value to appropriate type
+
+            // Strict type checking and conversion
             switch (stmt.type())
             {
             case INTEGER_ARRAY:
                 if (value instanceof BigDecimal)
                 {
-                    array[i] = ((BigDecimal)value).setScale(0, RoundingMode.DOWN);
+                    BigDecimal bd = (BigDecimal)value;
+                    array[i] = bd.setScale(0, RoundingMode.DOWN);
+
+                } else if (value instanceof Integer || value instanceof Double)
+                {
+                    BigDecimal bd = new BigDecimal(value.toString());
+                    array[i] = bd.setScale(0, RoundingMode.DOWN);
+
                 } else
                 {
-                    throw new RuntimeException("Array type mismatch");
+                    throw new RuntimeException("Integer array can only contain numbers");
                 }
                 break;
             case FLOAT_ARRAY:
                 if (value instanceof BigDecimal)
                 {
                     array[i] = (BigDecimal)value;
+                } else if (value instanceof Number)
+                {
+                    array[i] = new BigDecimal(value.toString());
                 } else
                 {
-                    throw new RuntimeException("Array type mismatch");
+                    throw new RuntimeException("Float array can only contain numbers");
                 }
+
                 break;
             case STRING_ARRAY:
                 array[i] = stringify(value);
+
                 break;
             case BOOLEAN_ARRAY:
-                array[i] = isTruthy(value);
+                if (value instanceof Boolean)
+                {
+                    array[i] = value;
+                } else
+                {
+                    throw new RuntimeException("Boolean array can only contain true/false values");
+                }
+
                 break;
             }
         }
 
-        environment.defineArray(stmt.name().lexeme, array);
+        environment.defineArray(stmt.name().lexeme, stmt.type(), array);
+
+
         return null;
     }
     @Override
@@ -3027,12 +3400,22 @@ private Object getDefaultValue(Class<?> componentType) {
                 return ((BigDecimal)left).compareTo((BigDecimal)right) >= 0;
             }
             throw new RuntimeException("Operands must be numbers");
-
         case AND:
             return isTruthy(left) && isTruthy(right);
         case OR:
             return isTruthy(left) || isTruthy(right);
-
+        case BITWISE_AND:
+            return performBitwiseOperation(left, right, (a, b) -> a & b);
+        case BITWISE_OR:
+            return performBitwiseOperation(left, right, (a, b) -> a | b);
+        case BITWISE_XOR:
+            return performBitwiseOperation(left, right, (a, b) -> a ^ b);
+        case LEFT_SHIFT:
+            return performBitwiseOperation(left, right, (a, b) -> a << b);
+        case RIGHT_SHIFT:
+            return performBitwiseOperation(left, right, (a, b) -> a >> b);
+        case UNSIGNED_RIGHT_SHIFT:
+            return performBitwiseOperation(left, right, (a, b) -> a >>> b);
         case ASSIGN:
             if (expr.left() instanceof Variable)
             {
@@ -3050,16 +3433,22 @@ private Object getDefaultValue(Class<?> componentType) {
         throw new RuntimeException("Unknown operator");
     }
 
-    private void checkNumberOperands(Token operator, Object left, Object right)
+    @FunctionalInterface
+    private interface BitwiseOperation
     {
-        if (left instanceof Double || left instanceof Integer)
+        int apply(int a, int b);
+    }
+
+    // Helper method to perform bitwise operations
+    private Object performBitwiseOperation(Object left, Object right, BitwiseOperation operation)
+    {
+        if (left instanceof BigDecimal && right instanceof BigDecimal)
         {
-            if (right instanceof Double || right instanceof Integer)
-            {
-                return;
-            }
+            int leftInt = ((BigDecimal)left).intValue();
+            int rightInt = ((BigDecimal)right).intValue();
+            return new BigDecimal(operation.apply(leftInt, rightInt));
         }
-        throw new RuntimeException("Operands must be numbers");
+        throw new RuntimeException("Operands must be integers for bitwise operations");
     }
     @Override
     public Object visitGroupingExpr(Grouping expr)
@@ -3078,6 +3467,8 @@ private Object getDefaultValue(Class<?> componentType) {
         return expr.value();
     }
 
+
+
     @Override
     public Object visitUnaryExpr(Unary expr)
     {
@@ -3094,6 +3485,13 @@ private Object getDefaultValue(Class<?> componentType) {
 
         case BANG:
             return !isTruthy(right);
+        case BITWISE_NOT:
+            if (right instanceof BigDecimal)
+            {
+                int value = ((BigDecimal)right).intValue();
+                return new BigDecimal(~value);
+            }
+            throw new RuntimeException("Operand must be an integer for bitwise NOT");
 
         case INCREMENT:
             if (right instanceof BigDecimal)
@@ -3245,27 +3643,34 @@ private Object getDefaultValue(Class<?> componentType) {
     }
 
     @Override
-    public Object visitVariableExpr(Variable expr) {
+    public Object visitVariableExpr(Variable expr)
+    {
         // Firstly, I try to get as a regular variable
-        try {
+        try
+        {
             Object value = environment.get(expr.name());
             // If it's a string, return it directly
-            if (value instanceof String) {
+            if (value instanceof String)
+            {
                 return value;
             }
             // For arrays, return the array object
-            if (value instanceof Object[]) {
+            if (value instanceof Object[])
+            {
                 return value;
             }
             // For other types, return as is
             return value;
         }
-        catch (RuntimeException e) {
+        catch (RuntimeException e)
+        {
             // When not found as variable, we should try as function.
-            try {
+            try
+            {
                 return environment.getFunction(expr.name());
             }
-            catch (RuntimeException e2) {
+            catch (RuntimeException e2)
+            {
                 // If neither exists, throw the original variable not found error
                 throw e;
             }
@@ -3278,95 +3683,128 @@ private Object getDefaultValue(Class<?> componentType) {
     }
 
     @Override
-    public Object visitArrayAccessExpr(ArrayAccess expr) {
+    public Object visitArrayAccessExpr(ArrayAccess expr)
+    {
         Object array = evaluate(expr.array());
         Object indexObj = evaluate(expr.index());
-    
-        if (!(indexObj instanceof BigDecimal)) {
+
+        if (!(indexObj instanceof BigDecimal))
+        {
             throw new RuntimeException("Array index must be an integer");
         }
-    
+
         int index = ((BigDecimal)indexObj).intValue();
-    
-        if (array instanceof Object[]) {
+
+        if (array instanceof Object[])
+        {
             Object[] arr = (Object[])array;
-            if (index < 1 || index > arr.length) {
+            if (index < 1 || index > arr.length)
+            {
                 throw new RuntimeException("Array index out of bounds");
             }
             return arr[index - 1]; // Convert from 1-based to 0-based
-        } 
-        else if (array instanceof String) {
+        }
+        else if (array instanceof String)
+        {
             String str = (String)array;
-            if (index < 1 || index > str.length()) {
+            if (index < 1 || index > str.length())
+            {
                 throw new RuntimeException("String index out of bounds");
             }
             return String.valueOf(str.charAt(index - 1)); // Convert from 1-based to 0-based
         }
-    
+
         throw new RuntimeException("Variable is not an array or string");
     }
-    
 
-@Override
-public Object visitArrayAssignmentExpr(ArrayAssignment expr) {
-    Object array = evaluate(expr.array());
-    Object indexObj = evaluate(expr.index());
-    Object value = evaluate(expr.value());
 
-    if (!(indexObj instanceof BigDecimal)) {
-        throw new RuntimeException("Array index must be an integer");
-    }
+    @Override
+    public Object visitArrayAssignmentExpr(ArrayAssignment expr)
+    {
+        // Evaluate the array, index, and value
+        Object array = evaluate(expr.array());
+        Object indexObj = evaluate(expr.index());
+        Object value = evaluate(expr.value());
 
-    int index = ((BigDecimal)indexObj).intValue();
-
-    if (array instanceof Object[]) {
-        Object[] arr = (Object[])array;
-        if (index < 1 || index > arr.length) {
-            throw new RuntimeException("Array index out of bounds");
+        // Verify index is a number
+        if (!(indexObj instanceof BigDecimal))
+        {
+            throw new RuntimeException("Array index must be an integer");
         }
 
-        // Type checking
-        if (arr instanceof BigDecimal[]) {
-            if (!(value instanceof BigDecimal)) {
-                throw new RuntimeException("Array type mismatch");
+        // Convert index to 1-based integer
+        int index = ((BigDecimal)indexObj).intValue();
+
+        if (!(array instanceof Object[]))
+        {
+            throw new RuntimeException("Variable is not an array");
+        }
+
+        Object[] arr = (Object[])array;
+
+        // Check bounds
+        if (index < 1 || index > arr.length)
+        {
+            throw new RuntimeException("Array index out of bounds (valid: 1-" + arr.length + ")");
+        }
+
+        // Get array type from environment
+        TokenType arrayType = null;
+        if (expr.array() instanceof Variable)
+        {
+            Token arrayName = ((Variable)expr.array()).name();
+            arrayType = environment.getArrayType(arrayName.lexeme);
+        }
+
+        // Convert value based on array type
+        Object convertedValue = value;
+
+        if (arr instanceof BigDecimal[])
+        {
+            // Handle numeric arrays (both integer and float)
+            if (value instanceof BigDecimal)
+            {
+                convertedValue = value;
+            } else if (value instanceof Integer)
+            {
+                convertedValue = new BigDecimal((Integer)value);
+            } else if (value instanceof Double)
+            {
+                convertedValue = BigDecimal.valueOf((Double)value);
+            } else
+            {
+                throw new RuntimeException("Numeric array can only contain numbers");
+            }
+
+            // Special handling for integer arrays
+            if (arrayType == TokenType.INTEGER_ARRAY)
+            {
+                // Convert to integer by truncating decimals
+                convertedValue = ((BigDecimal)convertedValue).setScale(0, RoundingMode.DOWN);
             }
         }
-        else if (arr instanceof String[]) {
-            value = stringify(value);
+        else if (arr instanceof String[])
+        {
+            convertedValue = stringify(value);
         }
-        else if (arr instanceof Boolean[]) {
-            value = isTruthy(value);
+        else if (arr instanceof Boolean[])
+        {
+            if (!(value instanceof Boolean))
+            {
+                throw new RuntimeException("Boolean array can only contain true/false values");
+            }
+        }
+        else
+        {
+            throw new RuntimeException("Unknown array type");
         }
 
-        arr[index - 1] = value; // Convert from 1-based to 0-based
-        return value;
+        // Store the converted value
+        arr[index - 1] = convertedValue;
+
+        return convertedValue;
     }
-    else if (array instanceof String) {
-        // Strings are immutable in Java, so we need to create a new string
-        String str = (String)array;
-        if (index < 1 || index > str.length()) {
-            throw new RuntimeException("String index out of bounds");
-        }
-        if (!(value instanceof String) || ((String)value).length() != 1) {
-            throw new RuntimeException("String array assignment requires a single character");
-        }
-        
-        // Create new string with replaced character
-        char[] chars = str.toCharArray();
-        chars[index - 1] = ((String)value).charAt(0);
-        String newStr = new String(chars);
-        
-        // Update the variable in environment if it's a direct variable access
-        if (expr.array() instanceof Variable) {
-            Token name = ((Variable)expr.array()).name();
-            environment.assign(name, newStr);
-        }
-        return value;
-    }
-
-    throw new RuntimeException("Variable is not an array or string");
-}
-
+    
     private Object evaluate(Expr expr)
     {
         return expr.accept(this);
@@ -3392,14 +3830,6 @@ public Object visitArrayAssignmentExpr(ArrayAssignment expr) {
         return object.toString();
     }
 
-
-    private double convertToDouble(Object value)
-    {
-        if (value instanceof Double) return (Double)value;
-        if (value instanceof Integer) return ((Integer)value).doubleValue();
-        throw new RuntimeException("Cannot convert to number");
-    }
-
     private boolean isEqual(Object a, Object b)
     {
         if (a == null && b == null) return true;
@@ -3414,42 +3844,43 @@ public Object visitArrayAssignmentExpr(ArrayAssignment expr) {
         if (object instanceof Number) return ((Number)object).doubleValue() != 0;
         return true;
     }
-
-    private void checkNumberOperand(Token operator, Object operand)
-    {
-        if (operand instanceof Double || operand instanceof Integer) return;
-        throw new RuntimeException("Operand must be a number");
-    }
 }
 
 class ArrayManipulator
 {
-public static Object[] resizeArray(Object[] array, int newSize) {
-    Object[] newArray = (Object[])java.lang.reflect.Array.newInstance(
-        array.getClass().getComponentType(), newSize);
-    System.arraycopy(array, 0, newArray, 0, Math.min(array.length, newSize));
-    
-    // Initialize new elements
-    if (newSize > array.length) {
-        Object defaultValue = getDefaultValue(array.getClass().getComponentType());
-        for (int i = array.length; i < newSize; i++) {
-            newArray[i] = defaultValue;
-        }
-    }
-    
-    return newArray;
-}
+    public static Object[] resizeArray(Object[] array, int newSize)
+    {
+        Object[] newArray = (Object[])java.lang.reflect.Array.newInstance(
+                                array.getClass().getComponentType(), newSize);
+        System.arraycopy(array, 0, newArray, 0, Math.min(array.length, newSize));
 
-private static Object getDefaultValue(Class<?> componentType) {
-    if (componentType == BigDecimal.class) {
-        return BigDecimal.ZERO;
-    } else if (componentType == String.class) {
-        return "";
-    } else if (componentType == Boolean.class) {
-        return false;
+        // Initialize new elements
+        if (newSize > array.length)
+        {
+            Object defaultValue = getDefaultValue(array.getClass().getComponentType());
+            for (int i = array.length; i < newSize; i++)
+            {
+                newArray[i] = defaultValue;
+            }
+        }
+
+        return newArray;
     }
-    return null;
-}
+
+    private static Object getDefaultValue(Class<?> componentType)
+    {
+        if (componentType == BigDecimal.class)
+        {
+            return BigDecimal.ZERO;
+        } else if (componentType == String.class)
+        {
+            return "";
+        } else if (componentType == Boolean.class)
+        {
+            return false;
+        }
+        return null;
+    }
 
     // Bubble sort for comparable arrays
     public static void bubbleSort(Object[] array)
@@ -3620,6 +4051,7 @@ public class Main
             if (!Files.exists(path))
             {
                 System.err.println("Error: File not found - " + filename);
+                System.gc();
                 System.exit(1);
             }
 
@@ -3639,7 +4071,7 @@ public class Main
             String cleanedSource = new String(removeLibraryImports(source));
 
             // Process main source file
-            String translatedSource = LanguageTranslator.translateToBangla(cleanedSource);
+            String translatedSource = new String(LanguageTranslator.translateToBangla(cleanedSource));
 
             // Lexical analysis
             Lexer lexer = new Lexer(translatedSource);
@@ -3786,6 +4218,6 @@ public class Main
             }
         }
 
-        return cleaned.toString();
+        return new String(cleaned.toString());
     }
 }
