@@ -1,7 +1,7 @@
 
 # KalpanaLang - Programming in Your Native Language🧑‍💻
 
-[**Click here to read README in Bangla (বাংলা)**](README_BN.md)  
+[**Click here to read README in Bangla**](README_BN.md)  
 
 KalpanaLang is an interpreter-based programming language designed to allow programmers to write code in their native language. The initial version supports Bengali (Bangla) as the primary language with translations from English, Russian, and Hindi.
 
