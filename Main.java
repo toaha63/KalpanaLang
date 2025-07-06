@@ -1,5 +1,5 @@
-
 import java.io.*;
+import java.time.*;
 import java.math.*;
 import java.nio.file.*;
 import java.util.*;
@@ -36,6 +36,7 @@ class LanguageTranslator
         banglaToBangla.put("এড়াও", "এড়াও");
         banglaToBangla.put("ভাঙো", "ভাঙো");
         banglaToBangla.put("লুপ", "লুপ");
+        banglaToBangla.put("$ফাংশন", "$ফাংশন");
         banglaToBangla.put("ফাংশন", "ফাংশন");
         banglaToBangla.put("খালি", "খালি");
         banglaToBangla.put("ফেরত", "ফেরত");
@@ -61,7 +62,48 @@ class LanguageTranslator
         banglaToBangla.put("৭", "7");
         banglaToBangla.put("৮", "8");
         banglaToBangla.put("৯", "9");
-
+        banglaToBangla.put(";", ";"); //U+037E to U+003B
+        banglaToBangla.put("⮕", "→"); //User can use "⮕" for array initialize also.
+        //Some non printable Unicode character to empty string conversation
+        // Replace the non-printable Unicode characters with their escape sequences
+        banglaToBangla.put(" ", ""); // U+2000 - EN QUAD
+        banglaToBangla.put(" ", ""); // U+2001 - EM QUAD
+        banglaToBangla.put(" ", ""); // U+2002 - EN SPACE
+        banglaToBangla.put(" ", ""); // U+2003 - EM SPACE
+        banglaToBangla.put(" ", ""); // U+2004 - THREE-PER-EM SPACE
+        banglaToBangla.put(" ", ""); // U+2005 - FOUR-PER-EM SPACE
+        banglaToBangla.put(" ", ""); // U+2006 - SIX-PER-EM SPACE
+        banglaToBangla.put(" ", ""); // U+2007 - FIGURE SPACE
+        banglaToBangla.put(" ", ""); // U+2008 - PUNCTUATION SPACE
+        banglaToBangla.put(" ", ""); // U+2009 - THIN SPACE
+        banglaToBangla.put(" ", ""); // U+200A - HAIR SPACE
+        banglaToBangla.put("​", ""); // U+200B - ZERO WIDTH SPACE
+        banglaToBangla.put("‌", ""); // U+200C - ZERO WIDTH NON-JOINER
+        banglaToBangla.put("‍", ""); // U+200D - ZERO WIDTH JOINER
+        banglaToBangla.put("‎", ""); // U+200E - LEFT-TO-RIGHT MARK
+        banglaToBangla.put("‏", ""); // U+200F - RIGHT-TO-LEFT MARK
+        banglaToBangla.put("‪", ""); // U+202A - LEFT-TO-RIGHT EMBEDDING
+        banglaToBangla.put("‫", ""); //U + 202B
+        banglaToBangla.put("‬", ""); // U+202C - POP DIRECTIONAL FORMATTING
+        banglaToBangla.put("‭", ""); // U+202D - LEFT-TO-RIGHT OVERRIDE
+        banglaToBangla.put("‮", ""); //U+202E
+        banglaToBangla.put(" ", ""); // U+202F - NARROW NO-BREAK SPACE
+        banglaToBangla.put(" ", ""); // U+205F - MEDIUM MATHEMATICAL SPACE
+        banglaToBangla.put("⁠", ""); // U+2060 - WORD JOINER
+        banglaToBangla.put("⁡", ""); // U+2061 - FUNCTION APPLICATION
+        banglaToBangla.put("⁢", ""); // U+2062 - INVISIBLE TIMES
+        banglaToBangla.put("⁣", ""); // U+2063 - INVISIBLE SEPARATOR
+        banglaToBangla.put("⁤", ""); // U+2064 - INVISIBLE PLUS
+        banglaToBangla.put("⁦", ""); // U+2066 - LEFT-TO-RIGHT ISOLATE
+        banglaToBangla.put("⁧", ""); // U+2067 - RIGHT-TO-LEFT ISOLATE
+        banglaToBangla.put("⁨", ""); // U+2068 - FIRST STRONG ISOLATE
+        banglaToBangla.put("⁩", ""); // U+2069 - POP DIRECTIONAL ISOLATE
+        banglaToBangla.put("⁪", ""); // U+206A - INHIBIT SYMMETRIC SWAPPING
+        banglaToBangla.put("⁫", ""); // U+206B - ACTIVATE SYMMETRIC SWAPPING
+        banglaToBangla.put("⁬", ""); // U+206C - INHIBIT ARABIC FORM SHAPING
+        banglaToBangla.put("⁭", ""); // U+206D - ACTIVATE ARABIC FORM SHAPING
+        banglaToBangla.put("⁮", ""); // U+206E - NATIONAL DIGIT SHAPES
+        banglaToBangla.put("⁯", ""); // U+206F - NOMINAL DIGIT SHAPES
         // EN -> BN
         englishToBangla.put("increase_size", "আকার_বাড়াও");
         englishToBangla.put("resize_array", "আকার_বাড়াও");
@@ -86,9 +128,11 @@ class LanguageTranslator
         englishToBangla.put("if", "যদি");
         englishToBangla.put("else", "বা");
         englishToBangla.put("continue", "এড়াও");
-        englishToBangla.put("break", "ভাঙো");
+        englishToBangla.put("break", "ভাঙ");
         englishToBangla.put("for", "লুপ");
         englishToBangla.put("loop", "লুপ");
+        englishToBangla.put("$function", "$ফাংশন");
+        englishToBangla.put("$func", "$ফাংশন");
         englishToBangla.put("function", "ফাংশন");
         englishToBangla.put("func", "ফাংশন");
         englishToBangla.put("void", "খালি");
@@ -146,6 +190,8 @@ class LanguageTranslator
         russianToBangla.put("вернуться_в_начало", "শুরুতে_যাও");
         russianToBangla.put("закрыть", "বন্ধ");
         russianToBangla.put("выход", "বন্ধ");
+
+
         // Hindi to Bangla
         hindiToBangla.put("प्रिंट", "দেখাও");
         hindiToBangla.put("दिखाएं", "দেখাও");
@@ -180,6 +226,7 @@ class LanguageTranslator
         hindiToBangla.put("शुरू_पर_जाएं", "শুরুতে_যাও");
         hindiToBangla.put("बंद", "বন্ধ");
         hindiToBangla.put("समाप्त", "বন্ধ");
+
     }
 
     public static synchronized String translateToBangla(String sourceCode)
@@ -377,6 +424,7 @@ enum TokenType
     BREAK("ভাঙ"),
     CONTINUE("এড়াও"),
     INPUT("নাও"),
+    TEMPORARY_FUNCTION("$ফাংশন"),
     FUNCTION("ফাংশন"),
     RETURN("ফেরত"),
     VOID("খালি"),
@@ -485,7 +533,7 @@ class Lexer
     Lexer(String source)
     {
         // Translate the source code to Bangla first
-        String translatedSource = LanguageTranslator.translateToBangla(source);
+        String translatedSource = new String(LanguageTranslator.translateToBangla(source));
         this.source = translatedSource;
     }
 
@@ -678,6 +726,14 @@ class Lexer
 
         String text = source.substring(start, current);
 
+        // Handle $ফাংশন as a special case
+        if (text.equals("$ফাংশন"))
+        {
+            addToken(TokenType.TEMPORARY_FUNCTION);
+            return;
+        }
+
+        // Check other keywords
         for (TokenType type : TokenType.values())
         {
             if (type.bangla != null && type.bangla.equals(text))
@@ -816,7 +872,7 @@ class Lexer
 
     private boolean isAlpha(char c)
     {
-        return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_' ||
+        return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_' || c == '$'||
                Character.UnicodeBlock.of(c) == Character.UnicodeBlock.BENGALI || Character.UnicodeBlock.of(c) == Character.UnicodeBlock.CYRILLIC || Character.UnicodeBlock.of(c) ==Character.UnicodeBlock.MATHEMATICAL_OPERATORS;
     }
 
@@ -1093,7 +1149,7 @@ record Input(TokenType expectedType, Token variable) implements Stmt
     }
 }
 
-record Function(Token name, Token returnType, List<Token> parameters, List<Stmt> body) implements Stmt
+record Function(Token name, Token returnType, List<Token> parameters, List<Stmt> body, boolean isTemporary) implements Stmt
 {
     @Override public <R> R accept(StmtVisitor<R> visitor)
     {
@@ -1159,15 +1215,16 @@ class Parser
         return statements;
     }
 
+
     private Stmt declaration()
-    {
+     {
         try
         {
             if (match(TokenType.INTEGER, TokenType.FLOAT, TokenType.STRING, TokenType.BOOLEAN))
             {
                 return varDeclaration();
             }
-            if (match(TokenType.FUNCTION))
+            if (match(TokenType.FUNCTION, TokenType.TEMPORARY_FUNCTION))
             {
                 return functionDeclaration();
             }
@@ -1178,7 +1235,7 @@ class Parser
             return statement();
         }
         catch (RuntimeException error)
-        {
+         {
             System.err.println("Parse error: " + error.getMessage());
             hadError = true;
             synchronize();
@@ -1188,6 +1245,8 @@ class Parser
 
     private Stmt functionDeclaration()
     {
+        boolean isTemporary = previous().type == TokenType.TEMPORARY_FUNCTION;
+
         // Parse return type (either VOID or a type)
         Token returnType;
         if (match(TokenType.VOID))
@@ -1195,15 +1254,12 @@ class Parser
             returnType = previous();
             returnType.type = TokenType.VOID;
         }
-        else if(match(TokenType.INTEGER, TokenType.FLOAT, TokenType.STRING, TokenType.BOOLEAN,
-                      TokenType.INTEGER_ARRAY, TokenType.FLOAT_ARRAY,
-                      TokenType.STRING_ARRAY, TokenType.BOOLEAN_ARRAY))
+        else if(match(TokenType.INTEGER, TokenType.FLOAT, TokenType.STRING, TokenType.BOOLEAN,TokenType.INTEGER_ARRAY, TokenType.FLOAT_ARRAY,TokenType.STRING_ARRAY, TokenType.BOOLEAN_ARRAY))
         {
             returnType = previous();
         }
-        else
-        {
-            throw new RuntimeException("Expect return type after 'ফাংশন'");
+        else {
+            throw new RuntimeException("Expect return type after 'ফাংশন' or 'অস্থায়ী_ফাংশন'");
         }
 
         // Parse function name
@@ -1212,12 +1268,10 @@ class Parser
         // Parse parameters
         consume(TokenType.LEFT_PAREN, "Expect '(' after function name.");
         List<Token> parameters = new Vector<>();
-        if (!check(TokenType.RIGHT_PAREN))
-        {
-            do
-            {
+        if (!check(TokenType.RIGHT_PAREN)) {
+            do {
                 if (parameters.size() >= 30000)
-                {
+                 {
                     throw new RuntimeException("Can't have more than 30000 parameters.");
                 }
 
@@ -1230,8 +1284,7 @@ class Parser
                     param.type = type.type;
                     parameters.add(param);
                 }
-                else
-                {
+                else {
                     throw new RuntimeException("Expect parameter type");
                 }
             } while (match(TokenType.COMMA));
@@ -1242,7 +1295,7 @@ class Parser
         consume(TokenType.LEFT_BRACE, "Expect '{' before function body.");
         List<Stmt> body = block();
 
-        return new Function(name, returnType, parameters, body);
+        return new Function(name, returnType, parameters, body, isTemporary);
     }
 
 
@@ -2010,7 +2063,7 @@ class Environment
     public final Environment enclosing;
     private final Map<String, Object> values = new LinkedHashMap<>();
     public final Map<String, Object[]> arrays = new LinkedHashMap<>();
-    private final Map<String, Function> functions = new LinkedHashMap<>();
+    public final Map<String, Function> functions = new LinkedHashMap<>();
     private final Map<String, TokenType> arrayTypes = new HashMap<>();
 
     Environment()
@@ -2241,10 +2294,10 @@ class ClearScreenException extends RuntimeException
 }
 class BreakException extends RuntimeException
 {
-    }
+}
 class ContinueException extends RuntimeException
 {
-    }
+}
 
 class Interpreter implements ExprVisitor<Object>, StmtVisitor<Void>
 {
@@ -2312,12 +2365,16 @@ class Interpreter implements ExprVisitor<Object>, StmtVisitor<Void>
 
 
     @Override
-    public Void visitFunctionStmt(Function stmt)
-    {
+    public Void visitFunctionStmt(Function stmt) {
         // Store the function with its parameter types
         environment.defineFunction(stmt.name().lexeme, stmt);
+
+        // If it's a temporary function, we don't need to do anything special here
+        // The cleanup will happen in visitCallExpr after the function is called
         return null;
     }
+
+
 
     @Override
     public Void visitReturnStmt(Return stmt)
@@ -2371,68 +2428,55 @@ class Interpreter implements ExprVisitor<Object>, StmtVisitor<Void>
         return null;
     }
 
+
     @Override
-    public Object visitCallExpr(Call expr)
-    {
+    public Object visitCallExpr(Call expr) {
         // Handle built-in functions
-        if (expr.callee() instanceof Variable)
-        {
+        if (expr.callee() instanceof Variable) {
             String functionName = ((Variable)expr.callee()).name().lexeme;
 
             // Handle বন্ধ function
-            if (functionName.equals("বন্ধ"))
-            {
-                if (expr.arguments().size() != 1)
-                {
+            if (functionName.equals("বন্ধ")) {
+                if (expr.arguments().size() != 1) {
                     throw new RuntimeException("'বন্ধ' expects exactly 1 argument (error code)");
                 }
                 Object errorCode = evaluate(expr.arguments().get(0));
-                if (!(errorCode instanceof BigDecimal))
-                {
+                if (!(errorCode instanceof BigDecimal)) {
                     throw new RuntimeException("Error code must be an integer");
                 }
                 int code = ((BigDecimal)errorCode).intValue();
+                System.gc();
                 System.exit(code);
                 return null;
             }
 
             // Handle আকার_বাড়াও function
-            if (functionName.equals("আকার_বাড়াও"))
-            {
-                if (expr.arguments().size() != 2)
-                {
+            if (functionName.equals("আকার_বাড়াও")) {
+                if (expr.arguments().size() != 2) {
                     throw new RuntimeException("'আকার_বাড়াও' expects exactly 2 arguments (array, new size)");
                 }
                 Token arrayName = null;
-                if (expr.arguments().get(0) instanceof Variable)
-                {
+                if (expr.arguments().get(0) instanceof Variable) {
                     arrayName = ((Variable)expr.arguments().get(0)).name();
                 }
                 Object array = evaluate(expr.arguments().get(0));
                 Object sizeObj = evaluate(expr.arguments().get(1));
-                if (!(array instanceof Object[]))
-                {
+                if (!(array instanceof Object[])) {
                     throw new RuntimeException("First argument must be an array");
                 }
-                if (!(sizeObj instanceof BigDecimal))
-                {
+                if (!(sizeObj instanceof BigDecimal)) {
                     throw new RuntimeException("Second argument must be an integer");
                 }
                 int additionalSize = ((BigDecimal)sizeObj).intValue();
-                if (additionalSize < 0)
-                {
+                if (additionalSize < 0) {
                     throw new RuntimeException("Size increase cannot be negative");
                 }
                 Object[] resizedArray = (Object[])resizeArray(array, additionalSize);
-                if (arrayName != null)
-                {
+                if (arrayName != null) {
                     Environment env = environment;
-                    while (env != null)
-                    {
-                        if (env.arrays.containsKey(arrayName.lexeme))
-                        {
+                    while (env != null) {
+                        if (env.arrays.containsKey(arrayName.lexeme)) {
                             env.defineArray(arrayName.lexeme, env.getArrayType(arrayName.lexeme), resizedArray);
-
                             break;
                         }
                         env = env.enclosing;
@@ -2442,15 +2486,12 @@ class Interpreter implements ExprVisitor<Object>, StmtVisitor<Void>
             }
 
             // Handle delete variable
-            if (functionName.equals("ভ্যারিয়েবল_মুছো"))
-            {
-                if (expr.arguments().size() != 1)
-                {
+            if (functionName.equals("ভ্যারিয়েবল_মুছো")) {
+                if (expr.arguments().size() != 1) {
                     throw new RuntimeException("'ভ্যারিয়েবল_মুছো' expects exactly 1 argument");
                 }
                 Expr arg = expr.arguments().get(0);
-                if (!(arg instanceof Variable))
-                {
+                if (!(arg instanceof Variable)) {
                     throw new RuntimeException("'ভ্যারিয়েবল_মুছো' can only delete variables, not expressions");
                 }
                 Token varName = ((Variable)arg).name();
@@ -2459,63 +2500,49 @@ class Interpreter implements ExprVisitor<Object>, StmtVisitor<Void>
             }
 
             // Handle go to start
-            if (functionName.equals("শুরুতে_যাও"))
-            {
-                if (!expr.arguments().isEmpty())
-                {
+            if (functionName.equals("শুরুতে_যাও")) {
+                if (!expr.arguments().isEmpty()) {
                     throw new RuntimeException("'শুরুতে_যাও' takes no arguments");
                 }
                 throw new GoToStartException();
             }
 
-            if (functionName.equals("কনসোল_মুছো"))
-            {
-                if (!expr.arguments().isEmpty())
-                {
+            if (functionName.equals("কনসোল_মুছো")) {
+                if (!expr.arguments().isEmpty()) {
                     throw new RuntimeException("'কনসোল_মুছো' takes no arguments");
                 }
-                try
-                {
-                    if (System.getProperty("os.name").toLowerCase().contains("win"))
-                    {
+                try {
+                    if (System.getProperty("os.name").toLowerCase().contains("win")) {
                         new ProcessBuilder("cmd", "/c", "cls").inheritIO().start().waitFor();
-                    } else
-                    {
+                    } else {
                         new ProcessBuilder("clear").inheritIO().start().waitFor();
                     }
-                } catch (Exception exception)
-                {
+                } catch (Exception exception) {
                     System.err.println("Something went wrong to clear screen");
                 }
                 return null;
             }
 
             // Handle binary search
-            if (functionName.equals("বাইনারি_সার্চ"))
-            {
-                if (expr.arguments().size() != 2)
-                {
+            if (functionName.equals("বাইনারি_সার্চ")) {
+                if (expr.arguments().size() != 2) {
                     throw new RuntimeException("Expected 2 arguments for binary search");
                 }
                 Object array = evaluate(expr.arguments().get(0));
                 Object key = evaluate(expr.arguments().get(1));
-                if (!(array instanceof Object[]))
-                {
+                if (!(array instanceof Object[])) {
                     throw new RuntimeException("First argument must be an array");
                 }
                 return ArrayManipulator.binarySearch((Object[])array, key);
             }
 
             // Handle bubble sort
-            if (functionName.equals("বাবল_সর্ট"))
-            {
-                if (expr.arguments().size() != 1)
-                {
+            if (functionName.equals("বাবল_সর্ট")) {
+                if (expr.arguments().size() != 1) {
                     throw new RuntimeException("Expected 1 argument for bubble sort");
                 }
                 Object array = evaluate(expr.arguments().get(0));
-                if (!(array instanceof Object[]))
-                {
+                if (!(array instanceof Object[])) {
                     throw new RuntimeException("Argument must be an array");
                 }
                 ArrayManipulator.bubbleSort((Object[])array);
@@ -2523,15 +2550,12 @@ class Interpreter implements ExprVisitor<Object>, StmtVisitor<Void>
             }
 
             // Handle quick sort
-            if (functionName.equals("কুইক_সর্ট"))
-            {
-                if (expr.arguments().size() != 1)
-                {
+            if (functionName.equals("কুইক_সর্ট")) {
+                if (expr.arguments().size() != 1) {
                     throw new RuntimeException("Expected 1 argument for quick sort");
                 }
                 Object array = evaluate(expr.arguments().get(0));
-                if (!(array instanceof Object[]))
-                {
+                if (!(array instanceof Object[])) {
                     throw new RuntimeException("Argument must be an array");
                 }
                 ArrayManipulator.quickSort((Object[])array);
@@ -2541,8 +2565,7 @@ class Interpreter implements ExprVisitor<Object>, StmtVisitor<Void>
 
         // Handle user-defined functions
         Object callee = evaluate(expr.callee());
-        if (!(callee instanceof Function))
-        {
+        if (!(callee instanceof Function)) {
             throw new RuntimeException("Can only call functions.");
         }
 
@@ -2550,110 +2573,89 @@ class Interpreter implements ExprVisitor<Object>, StmtVisitor<Void>
         List<Object> arguments = new Vector<>();
 
         // Check argument count matches parameter count
-        if (expr.arguments().size() != function.parameters().size())
-        {
+        if (expr.arguments().size() != function.parameters().size()) {
             throw new RuntimeException("Expected " + function.parameters().size() +
                                        " arguments but got " + expr.arguments().size() + ".");
         }
 
         // Evaluate arguments with strict type checking
-        for (int i = 0; i < expr.arguments().size(); i++)
-        {
+        for (int i = 0; i < expr.arguments().size(); i++) {
             Expr argument = expr.arguments().get(i);
             Object value = evaluate(argument);
             Token param = function.parameters().get(i);
 
             // Strict type checking
-            switch (param.type)
-            {
+            switch (param.type) {
             case INTEGER:
-                if (!(value instanceof BigDecimal))
-                {
+                if (!(value instanceof BigDecimal)) {
                     throw new RuntimeException("Parameter " + (i+1) + " must be an integer");
                 }
-                if (((BigDecimal)value).scale() > 0)
-                {
+                if (((BigDecimal)value).scale() > 0) {
                     throw new RuntimeException("Parameter " + (i+1) + " must be an integer (no decimal places)");
                 }
                 value = ((BigDecimal)value).setScale(0, RoundingMode.DOWN);
                 break;
 
             case FLOAT:
-                if (!(value instanceof BigDecimal))
-                {
+                if (!(value instanceof BigDecimal)) {
                     throw new RuntimeException("Parameter " + (i+1) + " must be a float");
                 }
                 break;
 
             case STRING:
-                if (!(value instanceof String))
-                {
+                if (!(value instanceof String)) {
                     throw new RuntimeException("Parameter " + (i+1) + " must be a string");
                 }
                 break;
 
             case BOOLEAN:
-                if (!(value instanceof Boolean))
-                {
+                if (!(value instanceof Boolean)) {
                     throw new RuntimeException("Parameter " + (i+1) + " must be a boolean");
                 }
                 break;
 
             case INTEGER_ARRAY:
-                if (!(value instanceof Object[]))
-                {
+                if (!(value instanceof Object[])) {
                     throw new RuntimeException("Parameter " + (i+1) + " must be an integer array");
                 }
-                for (Object element : (Object[])value)
-                {
-                    if (!(element instanceof BigDecimal))
-                    {
+                for (Object element : (Object[])value) {
+                    if (!(element instanceof BigDecimal)) {
                         throw new RuntimeException("All elements in integer array must be integers");
                     }
-                    if (((BigDecimal)element).scale() > 0)
-                    {
+                    if (((BigDecimal)element).scale() > 0) {
                         throw new RuntimeException("All elements in integer array must be integers (no decimal places)");
                     }
                 }
                 break;
 
             case FLOAT_ARRAY:
-                if (!(value instanceof Object[]))
-                {
+                if (!(value instanceof Object[])) {
                     throw new RuntimeException("Parameter " + (i+1) + " must be a float array");
                 }
-                for (Object element : (Object[])value)
-                {
-                    if (!(element instanceof BigDecimal))
-                    {
+                for (Object element : (Object[])value) {
+                    if (!(element instanceof BigDecimal)) {
                         throw new RuntimeException("All elements in float array must be numbers");
                     }
                 }
                 break;
 
             case STRING_ARRAY:
-                if (!(value instanceof Object[]))
-                {
+                if (!(value instanceof Object[])) {
                     throw new RuntimeException("Parameter " + (i+1) + " must be a string array");
                 }
-                for (Object element : (Object[])value)
-                {
-                    if (!(element instanceof String))
-                    {
+                for (Object element : (Object[])value) {
+                    if (!(element instanceof String)) {
                         throw new RuntimeException("All elements in string array must be strings");
                     }
                 }
                 break;
 
             case BOOLEAN_ARRAY:
-                if (!(value instanceof Object[]))
-                {
+                if (!(value instanceof Object[])) {
                     throw new RuntimeException("Parameter " + (i+1) + " must be a boolean array");
                 }
-                for (Object element : (Object[])value)
-                {
-                    if (!(element instanceof Boolean))
-                    {
+                for (Object element : (Object[])value) {
+                    if (!(element instanceof Boolean)) {
                         throw new RuntimeException("All elements in boolean array must be booleans");
                     }
                 }
@@ -2664,14 +2666,12 @@ class Interpreter implements ExprVisitor<Object>, StmtVisitor<Void>
 
         // Create new environment for function call
         Environment environment = new Environment(this.environment);
-        for (int i = 0; i < function.parameters().size(); i++)
-        {
+        for (int i = 0; i < function.parameters().size(); i++) {
             String paramName = function.parameters().get(i).lexeme;
             Object value = arguments.get(i);
 
             // Handle array parameters specially
-            switch (function.parameters().get(i).type)
-            {
+            switch (function.parameters().get(i).type) {
             case INTEGER_ARRAY:
             case FLOAT_ARRAY:
             case STRING_ARRAY:
@@ -2683,122 +2683,138 @@ class Interpreter implements ExprVisitor<Object>, StmtVisitor<Void>
             }
         }
 
-        try
-        {
+        try {
             executeBlock(function.body(), environment);
-        } catch (ReturnException returnValue)
-        {
+
+            // After successful execution, if it was a temporary function, remove it
+            if (function.isTemporary()) {
+                // Remove the function from the environment
+                Environment env = this.environment;
+                while (env != null) {
+                    if (env.functions.containsKey(function.name().lexeme)) {
+                        env.functions.remove(function.name().lexeme);
+                        break;
+                    }
+                    env = env.enclosing;
+                }
+            }
+
+            if (function.returnType().type != TokenType.VOID) {
+                throw new RuntimeException("Function must return a value");
+            }
+            return null;
+        } catch (ReturnException returnValue) {
             // Return type checking
-            if (function.returnType().type == TokenType.VOID && returnValue.value != null)
-            {
+            if (function.returnType().type == TokenType.VOID && returnValue.value != null) {
                 throw new RuntimeException("Void function cannot return a value");
             }
-            if (function.returnType().type != TokenType.VOID)
-            {
-                if (returnValue.value == null)
-                {
+            if (function.returnType().type != TokenType.VOID) {
+                if (returnValue.value == null) {
                     throw new RuntimeException("Function must return a value");
                 }
                 // Check return type matches declared type
-                switch (function.returnType().type)
-                {
+                switch (function.returnType().type) {
                 case INTEGER:
-                    if (!(returnValue.value instanceof BigDecimal))
-                    {
+                    if (!(returnValue.value instanceof BigDecimal)) {
                         throw new RuntimeException("Function must return an integer");
                     }
                     return ((BigDecimal)returnValue.value).setScale(0, RoundingMode.DOWN);
 
                 case FLOAT:
-                    if (!(returnValue.value instanceof BigDecimal))
-                    {
+                    if (!(returnValue.value instanceof BigDecimal)) {
                         throw new RuntimeException("Function must return a float");
                     }
                     break;
 
                 case STRING:
-                    if (!(returnValue.value instanceof String))
-                    {
+                    if (!(returnValue.value instanceof String)) {
                         throw new RuntimeException("Function must return a string");
                     }
                     break;
 
                 case BOOLEAN:
-                    if (!(returnValue.value instanceof Boolean))
-                    {
+                    if (!(returnValue.value instanceof Boolean)) {
                         throw new RuntimeException("Function must return a boolean");
                     }
                     break;
 
                 case INTEGER_ARRAY:
-                    if (!(returnValue.value instanceof Object[]))
-                    {
+                    if (!(returnValue.value instanceof Object[])) {
                         throw new RuntimeException("Function must return an integer array");
                     }
-                    for (Object element : (Object[])returnValue.value)
-                    {
-                        if (!(element instanceof BigDecimal))
-                        {
+                    for (Object element : (Object[])returnValue.value) {
+                        if (!(element instanceof BigDecimal)) {
                             throw new RuntimeException("All elements in returned integer array must be integers");
                         }
-                        if (((BigDecimal)element).scale() > 0)
-                        {
+                        if (((BigDecimal)element).scale() > 0) {
                             throw new RuntimeException("All elements in returned integer array must be integers (no decimal places)");
                         }
                     }
                     break;
 
                 case FLOAT_ARRAY:
-                    if (!(returnValue.value instanceof Object[]))
-                    {
+                    if (!(returnValue.value instanceof Object[])) {
                         throw new RuntimeException("Function must return a float array");
                     }
-                    for (Object element : (Object[])returnValue.value)
-                    {
-                        if (!(element instanceof BigDecimal))
-                        {
+                    for (Object element : (Object[])returnValue.value) {
+                        if (!(element instanceof BigDecimal)) {
                             throw new RuntimeException("All elements in returned float array must be numbers");
                         }
                     }
                     break;
 
                 case STRING_ARRAY:
-                    if (!(returnValue.value instanceof Object[]))
-                    {
+                    if (!(returnValue.value instanceof Object[])) {
                         throw new RuntimeException("Function must return a string array");
                     }
-                    for (Object element : (Object[])returnValue.value)
-                    {
-                        if (!(element instanceof String))
-                        {
+                    for (Object element : (Object[])returnValue.value) {
+                        if (!(element instanceof String)) {
                             throw new RuntimeException("All elements in returned string array must be strings");
                         }
                     }
                     break;
 
                 case BOOLEAN_ARRAY:
-                    if (!(returnValue.value instanceof Object[]))
-                    {
+                    if (!(returnValue.value instanceof Object[])) {
                         throw new RuntimeException("Function must return a boolean array");
                     }
-                    for (Object element : (Object[])returnValue.value)
-                    {
-                        if (!(element instanceof Boolean))
-                        {
+                    for (Object element : (Object[])returnValue.value) {
+                        if (!(element instanceof Boolean)) {
                             throw new RuntimeException("All elements in returned boolean array must be booleans");
                         }
                     }
                     break;
                 }
             }
-            return returnValue.value;
-        }
 
-        if (function.returnType().type != TokenType.VOID)
-        {
-            throw new RuntimeException("Function must return a value");
+            // After successful execution, if it was a temporary function, remove it
+            if (function.isTemporary()) {
+                // Remove the function from the environment
+                Environment env = this.environment;
+                while (env != null) {
+                    if (env.functions.containsKey(function.name().lexeme)) {
+                        env.functions.remove(function.name().lexeme);
+                        break;
+                    }
+                    env = env.enclosing;
+                }
+            }
+
+            return returnValue.value;
+        } catch (Exception e) {
+            // Also remove temporary function if there was an error
+            if (function.isTemporary()) {
+                Environment env = this.environment;
+                while (env != null) {
+                    if (env.functions.containsKey(function.name().lexeme)) {
+                        env.functions.remove(function.name().lexeme);
+                        break;
+                    }
+                    env = env.enclosing;
+                }
+            }
+            throw e;
         }
-        return null;
     }
 
     private Object resizeArray(Object array, int additionalSize)
@@ -3804,7 +3820,7 @@ class Interpreter implements ExprVisitor<Object>, StmtVisitor<Void>
 
         return convertedValue;
     }
-    
+
     private Object evaluate(Expr expr)
     {
         return expr.accept(this);
@@ -4023,31 +4039,65 @@ class ArrayManipulator
 
 public class Main
 {
-    public static void main(String [] args)
+    static
     {
-        // Check if filename is provided
-        if (args.length == 0)
+
+    }
+    private enum TimeUnit { AUTO, S, MS, NS, JSON }
+    public static void main(String[] args)
+    {
+        // Parse arguments
+        String filename = "";
+        TimeUnit timeUnit = TimeUnit.AUTO;
+        boolean showTime = false;
+        boolean showMemory = false;
+
+        for (String arg : args)
         {
-            System.err.println("Usage: java Main <filename.kls>");
-            System.err.println("Example: java Main source.kls");
+            if (arg.endsWith(".kls"))
+            {
+                filename = filename.isEmpty() ? arg : filename;
+            }
+            else if (arg.equals("-time"))
+            {
+                showTime = true;
+            }
+            else if (arg.startsWith("-time:"))
+            {
+                showTime = true;
+                String unit = arg.substring(6).toLowerCase();
+                switch (unit)
+                {
+                    case "s":timeUnit = TimeUnit.S; break;
+                    case "ms": timeUnit = TimeUnit.MS; break;
+                    case "ns": timeUnit = TimeUnit.NS; break;
+                    case "json": timeUnit = TimeUnit.JSON; break;
+                    default: timeUnit = TimeUnit.AUTO;
+                }
+            }
+            else if (arg.equals("-mem"))
+            {
+                showMemory = true;
+            }
+        }
+
+        // Validate input
+        if (filename.isEmpty())
+        {
+            printUsage();
+            System.gc();
             System.exit(1);
         }
 
-        String filename = new String(args[0]);
-
-        // Validate file extension
-        if (!filename.toLowerCase().endsWith(".kls"))
-        {
-            System.err.println("Error: File must have .kls extension");
-            System.err.println("Provided file: " + filename);
-            System.exit(1);
-        }
+        // Start timing
+        Instant start = Instant.now();
+        Runtime runtime = Runtime.getRuntime();
+        long memBefore = runtime.totalMemory() - runtime.freeMemory();
 
         try
         {
-            // Read source code from the provided file path
+            // Read and process file
             Path path = Paths.get(filename);
-
             if (!Files.exists(path))
             {
                 System.err.println("Error: File not found - " + filename);
@@ -4055,48 +4105,101 @@ public class Main
                 System.exit(1);
             }
 
-            String source = new String(Files.readString(path));
-
-            // Process library imports before the main source
+            String source = Files.readString(path);
             List<String> libraryImports = extractLibraryImports(source);
             Interpreter interpreter = new Interpreter();
 
-            // Process each library file
+            // Process libraries
             for (String libPath : libraryImports)
             {
                 processLibraryFile(libPath, interpreter);
             }
 
-            // Remove library import lines from source
-            String cleanedSource = new String(removeLibraryImports(source));
+            // Process main file
+            String cleanedSource = removeLibraryImports(source);
+            String translatedSource = LanguageTranslator.translateToBangla(cleanedSource);
 
-            // Process main source file
-            String translatedSource = new String(LanguageTranslator.translateToBangla(cleanedSource));
-
-            // Lexical analysis
+            // Execution
             Lexer lexer = new Lexer(translatedSource);
             List<Token> tokens = lexer.scanTokens();
-
-            // Parsing
             Parser parser = new Parser(tokens);
             List<Stmt> statements = parser.parse();
-
-            // Interpretation
             interpreter.interpret(statements);
 
-            System.gc();
-        } catch (IOException e)
-        {
-            System.err.println("Error reading file '" + filename + "': " + e.getMessage());
-            System.exit(1);
-        } catch (RuntimeException e)
+        }
+        catch (Exception e)
         {
             System.err.println("Error: " + e.getMessage());
+            System.gc();
             System.exit(1);
+        }
+        finally
+        {
+            // Calculate and display metrics
+            if (showTime || showMemory)
+            {
+                Duration elapsed = Duration.between(start, Instant.now());
+                long memAfter = runtime.totalMemory() - runtime.freeMemory();
+                
+                if (timeUnit == TimeUnit.JSON)
+                {
+                    System.out.println(formatAsJson(elapsed, memBefore, memAfter));
+                }
+                else
+                {
+                    if (showTime)
+                    {
+                        System.out.println("Execution time: " + formatDuration(elapsed, timeUnit));
+                    }
+                    if (showMemory)
+                    {
+                        System.out.printf("Memory used: %.2f MB\n", 
+                            (memAfter - memBefore) / (1024.0 * 1024.0));
+                    }
+                }
+            }
+            System.gc();
         }
     }
 
-// Helper method to extract library imports
+    private static String formatDuration(Duration duration, TimeUnit unit)
+    {
+        switch (unit)
+        {
+            case S: return String.format("%.4fs", duration.toNanos() / 1_000_000_000.0);
+            case MS: return String.format("%.2fms", duration.toNanos() / 1_000_000.0);
+            case NS: return duration.toNanos() + "ns";
+            case AUTO:
+            default:
+                if (duration.toMillis() < 1) return duration.toNanos() + "ns";
+                if (duration.toSeconds() < 1) return String.format("%.2fms", duration.toNanos() / 1_000_000.0);
+                return String.format("%.4fs", duration.toNanos() / 1_000_000_000.0);
+        }
+    }
+
+    private static String formatAsJson(Duration elapsed, long memBefore, long memAfter)
+    {
+        double seconds = elapsed.toNanos() / 1_000_000_000.0;
+        double memoryMB = (memAfter - memBefore) / (1024.0 * 1024.0);
+        
+        return String.format("{\"time\": %.6f, \"unit\": \"s\", \"memory_mb\": %.2f}", 
+            seconds, memoryMB);
+    }
+
+    private static void printUsage()
+    {
+        System.err.println("Usage: kalpana <file.kls> [options]");
+        System.err.println("Options:");
+        System.err.println("  -time           Show execution time (auto units)");
+        System.err.println("  -time:s         Show time in seconds");
+        System.err.println("  -time:ms        Show time in milliseconds");
+        System.err.println("  -time:ns        Show time in nanoseconds");
+        System.err.println("  -time:json      Show metrics as JSON");
+        System.err.println("  -mem            Show memory usage");
+    }
+
+
+    // Helper method to extract library imports
     private static List<String> extractLibraryImports(String source)
     {
         List<String> imports = new Vector<>();
@@ -4120,7 +4223,7 @@ public class Main
         return imports;
     }
 
-// Helper method to process a library file
+    // Helper method to process a library file
     private static Path getInterpreterDirectory()
     {
         try
