@@ -64,7 +64,6 @@ class LanguageTranslator
         banglaToBangla.put("৯", "9");
         banglaToBangla.put(";", ";"); //U+037E to U+003B
         banglaToBangla.put("⮕", "→"); //User can use "⮕" for array initialize also.
-        //Some non printable Unicode character to empty string conversation
         // Replace the non-printable Unicode characters with their escape sequences
         banglaToBangla.put(" ", ""); // U+2000 - EN QUAD
         banglaToBangla.put(" ", ""); // U+2001 - EM QUAD
@@ -905,6 +904,13 @@ class Lexer
     {
         String text = source.substring(start, current);
         tokens.add(new Token(type, text, literal, line));
+    }
+
+    //For debugging perpose.
+    @Override 
+    public String toString()
+    {
+            return tokens.toString();
     }
 }
 
@@ -2244,8 +2250,6 @@ class Environment
         return null;
     }
 
-
-
     void assignArrayElement(Token name, int index, Object value)
     {
         if (arrays.containsKey(name.lexeme))
@@ -2292,12 +2296,8 @@ class ClearScreenException extends RuntimeException
 
     }
 }
-class BreakException extends RuntimeException
-{
-}
-class ContinueException extends RuntimeException
-{
-}
+class BreakException extends RuntimeException{}
+class ContinueException extends RuntimeException{}
 
 class Interpreter implements ExprVisitor<Object>, StmtVisitor<Void>
 {
@@ -4044,123 +4044,176 @@ public class Main
 
     }
     private enum TimeUnit { AUTO, S, MS, NS, JSON }
+
     public static void main(String[] args)
     {
-        // Parse arguments
         String filename = "";
-        TimeUnit timeUnit = TimeUnit.AUTO;
-        boolean showTime = false;
-        boolean showMemory = false;
-
-        for (String arg : args)
+        boolean fileExecuted = false;
+        Instant start = null;
+        Runtime runtime = Runtime.getRuntime();
+        long memBefore = 0;
+        
+        try 
         {
-            if (arg.endsWith(".kls"))
+            for (int i = 0; i < args.length; i++) 
             {
-                filename = filename.isEmpty() ? arg : filename;
-            }
-            else if (arg.equals("-time"))
-            {
-                showTime = true;
-            }
-            else if (arg.startsWith("-time:"))
-            {
-                showTime = true;
-                String unit = arg.substring(6).toLowerCase();
-                switch (unit)
+                String arg = args[i];
+                
+                // Handle flags in order
+                if (arg.startsWith("-")) 
                 {
-                    case "s":timeUnit = TimeUnit.S; break;
-                    case "ms": timeUnit = TimeUnit.MS; break;
-                    case "ns": timeUnit = TimeUnit.NS; break;
-                    case "json": timeUnit = TimeUnit.JSON; break;
-                    default: timeUnit = TimeUnit.AUTO;
+                    switch (arg) 
+                    {
+                        case "-help":
+                            printUsage();
+                            continue;
+                            
+                        case "-version":
+                        case "-v":
+                            System.out.println("KalpanaLang version 1.1");
+                            continue;
+                            
+                        case "-contributors":
+                        case "-helper":
+                        case "-helpers":
+                            System.out.println("Main contributors are: \n- Hasin Israk Toaha.\n- Fabiha Islam (Deeba).\n- Hafsa Akter.\n- Ritu Moni.\n- Akash Mitro (Nill).\n- Sifat Hossen.\n- Sojib Islam (Akash).\n- Lamia Akter.\n- Sarmin Akter.\n- Siam Hossen.\n- Sahanaj Mim.\n- Avijit Dewry.\n");
+                            System.gc();
+                            continue;
+                            
+                        case "-time":
+                        case "-time:s":
+                        case "-time:ms":
+                        case "-time:ns":
+                        case "-time:json":
+                        case "-mem":
+                            if (!fileExecuted) 
+                            {
+                                System.err.println("\u001b[31m" + "Error: Please provide a .kls file before performance flags" + "\u001b[0m");
+                                printUsage();
+                                System.gc();
+                                System.exit(1);
+                            }
+                            break;
+                            
+                        default:
+                            System.err.println("\u001b[31m" + "Error: Unknown option '" + arg + "'" + "\u001b[0m");
+                            printUsage();
+                            System.gc();
+                            System.exit(1);
+                    }
+                }
+                else if (arg.endsWith(".kls")) 
+                {
+                    if (fileExecuted) 
+                    {
+                        System.err.println("\u001b[31m" + "Error: Only one .kls file can be executed" + "\u001b[0m");
+                        printUsage();
+                        System.gc();
+                        System.exit(1);
+                    }
+                    
+                    filename = arg;
+                    start = Instant.now();
+                    memBefore = runtime.totalMemory() - runtime.freeMemory();
+                    
+                    // Execute the file
+                    try 
+                    {
+                        Path path = Paths.get(filename);
+                        if (!Files.exists(path)) 
+                        {
+                            throw new RuntimeException("\u001b[31m"+"File not found: " + filename + "\u001b[0m");
+                        }
+    
+                        String source = Files.readString(path);
+                        List<String> libraryImports = extractLibraryImports(source);
+                        Interpreter interpreter = new Interpreter();
+    
+                        // Process libraries
+                        for (String libPath : libraryImports) 
+                        {
+                            processLibraryFile(libPath, interpreter);
+                        }
+    
+                        // Process main file
+                        String cleanedSource = removeLibraryImports(source);
+                        String translatedSource = LanguageTranslator.translateToBangla(cleanedSource);
+    
+                        // Execution
+                        Lexer lexer = new Lexer(translatedSource);
+                        List<Token> tokens = lexer.scanTokens();
+                        Parser parser = new Parser(tokens);
+                        List<Stmt> statements = parser.parse();
+                        interpreter.interpret(statements);
+                        
+                        fileExecuted = true;
+                    } 
+                    catch (Exception e) 
+                    {
+                        System.err.println("\u001b[31m" + "Error executing file: " + e.getMessage() + "\u001b[0m");
+                        System.exit(1);
+                    }
+                }
+                else 
+                {
+                    System.err.println("\u001b[31m" + "Error: Unknown argument '" + arg + "'" + "\u001b[0m");
+                    printUsage();
+                    System.gc();
+                    System.exit(1);
                 }
             }
-            else if (arg.equals("-mem"))
-            {
-                showMemory = true;
-            }
-        }
-
-        // Validate input
-        if (filename.isEmpty())
-        {
-            printUsage();
-            System.gc();
-            System.exit(1);
-        }
-
-        // Start timing
-        Instant start = Instant.now();
-        Runtime runtime = Runtime.getRuntime();
-        long memBefore = runtime.totalMemory() - runtime.freeMemory();
-
-        try
-        {
-            // Read and process file
-            Path path = Paths.get(filename);
-            if (!Files.exists(path))
-            {
-                System.err.println("Error: File not found - " + filename);
-                System.gc();
-                System.exit(1);
-            }
-
-            String source = Files.readString(path);
-            List<String> libraryImports = extractLibraryImports(source);
-            Interpreter interpreter = new Interpreter();
-
-            // Process libraries
-            for (String libPath : libraryImports)
-            {
-                processLibraryFile(libPath, interpreter);
-            }
-
-            // Process main file
-            String cleanedSource = removeLibraryImports(source);
-            String translatedSource = LanguageTranslator.translateToBangla(cleanedSource);
-
-            // Execution
-            Lexer lexer = new Lexer(translatedSource);
-            List<Token> tokens = lexer.scanTokens();
-            Parser parser = new Parser(tokens);
-            List<Stmt> statements = parser.parse();
-            interpreter.interpret(statements);
-
-        }
-        catch (Exception e)
-        {
-            System.err.println("Error: " + e.getMessage());
-            System.gc();
-            System.exit(1);
-        }
-        finally
-        {
-            // Calculate and display metrics
-            if (showTime || showMemory)
+            
+            // Process performance flags after all other processing
+            if (fileExecuted) 
             {
                 Duration elapsed = Duration.between(start, Instant.now());
                 long memAfter = runtime.totalMemory() - runtime.freeMemory();
                 
-                if (timeUnit == TimeUnit.JSON)
+                for (int i = 0; i < args.length; i++) 
                 {
-                    System.out.println(formatAsJson(elapsed, memBefore, memAfter));
-                }
-                else
-                {
-                    if (showTime)
+                    String arg = args[i];
+                    
+                    switch (arg) 
                     {
-                        System.out.println("Execution time: " + formatDuration(elapsed, timeUnit));
-                    }
-                    if (showMemory)
-                    {
-                        System.out.printf("Memory used: %.2f MB\n", 
-                            (memAfter - memBefore) / (1024.0 * 1024.0));
+                        case "-time":
+                            System.out.println("Execution time: " + formatDuration(elapsed, TimeUnit.AUTO));
+                            break;
+                            
+                        case "-time:s":
+                            System.out.println("Execution time: " + formatDuration(elapsed, TimeUnit.S));
+                            break;
+                            
+                        case "-time:ms":
+                            System.out.println("Execution time: " + formatDuration(elapsed, TimeUnit.MS));
+                            break;
+                            
+                        case "-time:ns":
+                            System.out.println("Execution time: " + formatDuration(elapsed, TimeUnit.NS));
+                            break;
+                            
+                        case "-time:json":
+                            System.out.println(formatAsJson(elapsed, memBefore, memAfter));
+                            break;
+                            
+                        case "-mem":
+                            System.out.printf("Memory used: %.3f MB\n", 
+                                (memAfter - memBefore) / (1024.0 * 1024.0));
+                            break;
                     }
                 }
             }
+            else if (args.length == 0) 
+            {
+                printUsage();
+                System.gc();
+                System.exit(1);
+            }
+        } 
+        finally 
+        {
             System.gc();
         }
-    }
+}
 
     private static String formatDuration(Duration duration, TimeUnit unit)
     {
@@ -4196,9 +4249,11 @@ public class Main
         System.err.println("  -time:ns        Show time in nanoseconds");
         System.err.println("  -time:json      Show metrics as JSON");
         System.err.println("  -mem            Show memory usage");
+        System.err.println("  -contributors   Show contributors list");
+        System.err.println("  -helpers        Alias for -contributors");
+        System.err.println("  -help           Open help pad");
     }
-
-
+    
     // Helper method to extract library imports
     private static List<String> extractLibraryImports(String source)
     {
@@ -4206,7 +4261,7 @@ public class Main
         String[] lines = source.split("\\r?\\n");
 
         // Pattern to match: লাইব্রেরী "path/to/library.klm";
-        Pattern importPattern = Pattern.compile("^\\s*লাইব্রেরী\\s*\"([^\"]+\\.klm)\"\\s*;\\s*$");
+        Pattern importPattern = Pattern.compile("^\\s*লাইব্রের[ীি]\\s*\"([^\"]+\\.klm)\"\\s*;\\s*$",Pattern.UNICODE_CASE);
 
         for (String line : lines)
         {
@@ -4241,7 +4296,8 @@ public class Main
                 // If running from class files, get the directory containing the class files
                 return path;
             }
-        } catch (Exception e)
+        }
+        catch (Exception e)
         {
             // Fallback to current directory if there's any error
             return Paths.get("").toAbsolutePath();
@@ -4249,49 +4305,72 @@ public class Main
     }
 
     // processLibraryFile method
-    private static void processLibraryFile(String libPath, Interpreter interpreter) throws IOException
+        private static void processLibraryFile(String libPath, Interpreter interpreter) throws IOException
     {
-        Path libFilePath;
-
-        // If the path is absolute or contains directory separators, use as-is
-        if (libPath.startsWith("/") || libPath.startsWith("\\") || libPath.contains("/") || libPath.contains("\\"))
+        List<Path> searchPaths = new Vector<>();
+        
+        // 1. Add system module paths (Termux and Linux)
+        String systemModulePath = System.getenv("KALPANA_MODULE_PATH");
+        if (systemModulePath != null)
         {
-            libFilePath = Paths.get(libPath);
-        } else
-        {
-            // For simple filenames, look in the interpreter directory first
-            Path interpreterDir = getInterpreterDirectory();
-            libFilePath = interpreterDir.resolve(libPath);
-
-            // If not found in interpreter directory, try current working directory
-            if (!Files.exists(libFilePath))
+            for (String path : systemModulePath.split(":"))
             {
-                libFilePath = Paths.get(libPath);
+                searchPaths.add(Paths.get(path));
+            }
+        }
+        
+        // 2. Add default system paths
+        if (System.getProperty("os.name").toLowerCase().contains("linux"))
+        {
+            if (System.getenv("PREFIX") != null) //Termux
+            {
+                searchPaths.add(Paths.get(System.getenv("PREFIX"), "share", "KalpanaLang", "modules"));
+            } else { // Regular Linux.
+                searchPaths.add(Paths.get("/usr/share/KalpanaLang/modules"));
+                searchPaths.add(Paths.get("/usr/local/share/KalpanaLang/modules"));
             }
         }
 
-        if (!Files.exists(libFilePath))
-        {
-            throw new RuntimeException("Library file not found: " + libFilePath);
-        }
+        // 3. Add user home directory path
+        searchPaths.add(Paths.get(System.getProperty("user.home"), ".kalpana", "modules"));
 
+        // 4. Add original path (absolute or relative)
+        if (libPath.startsWith("/") || libPath.startsWith("\\") || libPath.contains("/") || libPath.contains("\\"))
+        {
+            searchPaths.add(Paths.get(libPath));
+        } else {
+            searchPaths.add(getInterpreterDirectory().resolve(libPath));
+            searchPaths.add(Paths.get(libPath));
+        }
+    
+        // Search through all possible paths
+        Path foundPath = null;
+        for (Path basePath : searchPaths)
+        {
+            Path testPath = basePath.resolve(libPath);
+            if (Files.exists(testPath))
+            {
+                foundPath = testPath;
+                break;
+            }
+        }
+    
+        if (foundPath == null)
+        {
+            throw new RuntimeException("Library file not found: " + libPath + 
+                "\nSearched in: " + searchPaths);
+        }
+    
         if (!libPath.toLowerCase().endsWith(".klm"))
         {
             throw new RuntimeException("Library file must have .klm extension: " + libPath);
         }
-
-        String libSource = Files.readString(libFilePath);
+    
+        String libSource = Files.readString(foundPath);
         String translatedSource = LanguageTranslator.translateToBangla(libSource);
-
-        // Process library file
-        Lexer lexer = new Lexer(translatedSource);
-        List<Token> tokens = lexer.scanTokens();
-
-        Parser parser = new Parser(tokens);
-        List<Stmt> statements = parser.parse();
-
-        // Interpret the library
-        interpreter.interpret(statements);
+    
+        // Process library file & Interpret the library.
+        interpreter.interpret(new Parser(new Lexer(translatedSource).scanTokens()).parse());
     }
 
 // Helper method to remove library imports from source
@@ -4301,7 +4380,7 @@ public class Main
         StringBuilder cleaned = new StringBuilder();
         boolean importsEnded = false;
 
-        Pattern importPattern = Pattern.compile("^\\s*লাইব্রেরী\\s*\".+\\.klm\"\\s*;\\s*$");
+        Pattern importPattern = Pattern.compile("^\\s*লাইব্রের[ীি]\\s*\"([^\"]+\\.klm)\"\\s*;\\s*$",Pattern.UNICODE_CASE);
 
         for (String line : lines)
         {
