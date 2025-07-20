@@ -1,18 +1,20 @@
 import java.io.*;
+import java.util.*;
 import java.time.*;
 import java.math.*;
 import java.nio.file.*;
-import java.util.*;
 import java.util.regex.*;
+import java.nio.charset.*;
+import java.time.format.*;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
+import jdk.jshell.*;
 
 class LanguageTranslator
 {
     public static final Map<String, String> englishToBangla = new LinkedHashMap<String, String>();
-
     public static final Map<String, String> russianToBangla = new LinkedHashMap<String, String>();
-
     public static final Map<String, String> hindiToBangla = new LinkedHashMap<String, String>();
-
     public static final Map<String, String> banglaToBangla = new LinkedHashMap<String, String>();
 
     static
@@ -36,6 +38,7 @@ class LanguageTranslator
         banglaToBangla.put("এড়াও", "এড়াও");
         banglaToBangla.put("ভাঙো", "ভাঙো");
         banglaToBangla.put("লুপ", "লুপ");
+        banglaToBangla.put("অন্যলুপ", "অন্যলুপ");
         banglaToBangla.put("$ফাংশন", "$ফাংশন");
         banglaToBangla.put("ফাংশন", "ফাংশন");
         banglaToBangla.put("খালি", "খালি");
@@ -130,6 +133,7 @@ class LanguageTranslator
         englishToBangla.put("break", "ভাঙ");
         englishToBangla.put("for", "লুপ");
         englishToBangla.put("loop", "লুপ");
+        englishToBangla.put("exLoop", "অন্যলুপ");
         englishToBangla.put("$function", "$ফাংশন");
         englishToBangla.put("$func", "$ফাংশন");
         englishToBangla.put("function", "ফাংশন");
@@ -190,7 +194,6 @@ class LanguageTranslator
         russianToBangla.put("закрыть", "বন্ধ");
         russianToBangla.put("выход", "বন্ধ");
 
-
         // Hindi to Bangla
         hindiToBangla.put("प्रिंट", "দেখাও");
         hindiToBangla.put("दिखाएं", "দেখাও");
@@ -225,13 +228,10 @@ class LanguageTranslator
         hindiToBangla.put("शुरू_पर_जाएं", "শুরুতে_যাও");
         hindiToBangla.put("बंद", "বন্ধ");
         hindiToBangla.put("समाप्त", "বন্ধ");
-
     }
 
-    public static synchronized String translateToBangla(String sourceCode)
-    {
-        if (sourceCode == null || sourceCode.trim().isEmpty())
-        {
+    public static synchronized String translateToBangla(String sourceCode) {
+        if (sourceCode == null || sourceCode.trim().isEmpty()) {
             return sourceCode;
         }
 
@@ -239,8 +239,7 @@ class LanguageTranslator
         String detectedLanguage = detectLanguage(sourceCode);
 
         // Translate based on detected language
-        switch (detectedLanguage)
-        {
+        switch (detectedLanguage) {
         case "russian":
             translatedCode = translateLanguage(translatedCode, russianToBangla);
             break;
@@ -250,18 +249,51 @@ class LanguageTranslator
         case "hindi":
             translatedCode = translateLanguage(translatedCode, hindiToBangla);
             break;
+
         case "bangla":
             translatedCode = translateLanguage(translatedCode, banglaToBangla);
             break;
         case "mixed":
-            // For mixed code, translate in order: Russian -> English -> Hindi
             translatedCode = translateLanguage(translatedCode, russianToBangla);
             translatedCode = translateLanguage(translatedCode, englishToBangla);
             translatedCode = translateLanguage(translatedCode, hindiToBangla);
+
             break;
         }
 
+        // Convert অন্যলুপ to standard for loop syntax
+        translatedCode = convertOnnoLoopToForLoop(translatedCode);
+
         return translatedCode;
+    }
+
+    private static String convertOnnoLoopToForLoop(String code)
+    {
+        // Use the TokenType's bangla representation for pattern matching
+        String onnoLoopKeyword = TokenType.OTHER_LOOP.bangla;
+        Pattern onnoLoopPattern = Pattern.compile(Pattern.quote(onnoLoopKeyword) + "\\s*\\(\\s*(.*?)\\s*,\\s*(.*?)\\s*\\)", Pattern.UNICODE_CASE);
+
+        BigDecimal startValueinBigDecimal = BigDecimal.ZERO;
+        BigDecimal endValueinBigDecimal = BigDecimal.ZERO;
+        Matcher matcher = onnoLoopPattern.matcher(code);
+        StringBuffer sb = new StringBuffer();
+        String theHiddenVariableForLoop = new String("নোটিসঃ" + Math.abs(new java.security.SecureRandom().nextLong()) + "_এটি__∫লুপ_কাউন্টার_চলক__এবং__এটি_পাবলিক_না_হওয়াই_শ্রেয়__" + System.nanoTime()).replaceAll("\\s+", "").trim();
+
+        while (matcher.find())
+        {
+            String start = matcher.group(1).trim();
+            String end = matcher.group(2).trim();
+            startValueinBigDecimal = new BigDecimal(start);
+            endValueinBigDecimal = new BigDecimal(end);
+
+            matcher.appendReplacement(sb,
+                                      "লুপ(পূর্ণসংখ্যা " + theHiddenVariableForLoop + " = " + start + " ; " +
+                                      theHiddenVariableForLoop + (startValueinBigDecimal.compareTo(endValueinBigDecimal) == 1 ? " >= " + end + " ; " + theHiddenVariableForLoop + "--" :
+                                              " <= " + end + " ; " + theHiddenVariableForLoop + "++") + ")");
+        }
+        matcher.appendTail(sb);
+
+        return sb.toString();
     }
 
     private static synchronized String translateLanguage(String code, Map<String, String> translationMap)
@@ -388,7 +420,7 @@ class LanguageTranslator
         } else if (hindiCount > 0 && englishCount == 0 && russianCount == 0)
         {
             return "hindi";
-        } else if (banglaCount > 0 || englishCount > 0 || russianCount > 0 || hindiCount > 0)
+        } else if (banglaCount > 0 || englishCount > 0 || russianCount > 0 || hindiCount > 0 )
         {
             return "mixed";
         }
@@ -396,10 +428,44 @@ class LanguageTranslator
         return "unknown";
     }
 }
+enum FileOperation {
+    OPEN, READ, WRITE, CLOSE
+}
+enum FileMode {
+    READ("r", "পড়ার জন্য"),
+    WRITE("w", "ফাইল বানিয়ে লিখ"),
+    APPEND("a", "যোগ করে লিখ"),
+    READ_WRITE("r+", "পড়া ও লিখার জন্য"),
+    WRITE_READ("w+", "ফাইল বানিয়ে পড়া ও লিখার জন্য"),
+    APPEND_READ("a+", "যোগ করে পড়া ও লিখার জন্য");
 
+    final String cMode;
+    final String banglaMode;
+
+    FileMode(String cMode, String banglaMode) {
+        this.cMode = cMode;
+        this.banglaMode = banglaMode;
+    }
+
+    static FileMode fromString(String mode) {
+        for (FileMode fm : values()) {
+            if (fm.cMode.equalsIgnoreCase(mode) || 
+                fm.banglaMode.equalsIgnoreCase(mode)) {
+                return fm;
+            }
+        }
+        return WRITE; // Default mode
+    }
+}
 enum TokenType
 {
     // Keywords
+    FILE("ফাইল"),
+    OPEN_FILE("খোলো"),
+    READ_FILE("পড়"),
+    WRITE_FILE("লিখ"),
+    CLOSE_FILE("ফাইল_বন্ধ"),
+    FILE_HANDLE,
     INTEGER_ARRAY("পূর্ণসংখ্যার_অ্যারে"),
     FLOAT_ARRAY("ভগ্নাংশের_অ্যারে"),
     STRING_ARRAY("বাক্যের_অ্যারে"),
@@ -411,6 +477,9 @@ enum TokenType
     FLOAT("ভগ্নাংশ"),
     STRING("বাক্য"),
     BOOLEAN("বুলিয়ান"),
+    TO_INT("পূর্ণসংখ্যায়"),
+    TO_FLOAT("ভগ্নাংশে"),
+    TO_STRING("বাক্যে"),
     PRINTLN("দেখা"),
     PRINT("দেখাও"),
     TRUE("সত্য"),
@@ -420,11 +489,14 @@ enum TokenType
     ELSE_IF("যদিবা"),
     ELSE("বা"),
     LOOP("লুপ"),
+    OTHER_LOOP("অন্যলুপ"),
     BREAK("ভাঙ"),
     CONTINUE("এড়াও"),
+    DATATYPE("ধরণ"),
     INPUT("নাও"),
     TEMPORARY_FUNCTION("$ফাংশন"),
     FUNCTION("ফাংশন"),
+    ARGUMENT("আর্গুমেন্ট"),
     RETURN("ফেরত"),
     VOID("খালি"),
     GO_TO_START("শুরুতে_যাও"),
@@ -499,7 +571,7 @@ class Token
 {
     TokenType type;
     TokenType varType;
-    final String lexeme;
+     String lexeme;
     final Object literal;
     final int line;
 
@@ -511,7 +583,6 @@ class Token
         this.line = line;
         this.varType = null;
     }
-
 
     @Override
     public String toString()
@@ -731,6 +802,23 @@ class Lexer
             addToken(TokenType.TEMPORARY_FUNCTION);
             return;
         }
+        if (text.equals("ফাইল")) {
+            addToken(TokenType.FILE);
+            return;
+        }
+        if (text.equals("খোলো")) {
+            addToken(TokenType.OPEN_FILE);
+            return;
+        }
+        if (text.equals("পড়")) {
+            addToken(TokenType.READ_FILE);
+            return;
+        }
+        if (text.equals("লিখ")) {
+            addToken(TokenType.WRITE_FILE);
+            return;
+        }
+ 
 
         // Check other keywords
         for (TokenType type : TokenType.values())
@@ -907,10 +995,10 @@ class Lexer
     }
 
     //For debugging perpose.
-    @Override 
+    @Override
     public String toString()
     {
-            return tokens.toString();
+        return tokens.toString();
     }
 }
 
@@ -931,6 +1019,8 @@ interface ExprVisitor<R>
     R visitArrayAssignmentExpr(ArrayAssignment expr);
     R visitArraySizeExpr(ArraySize expr);
     R visitCallExpr(Call expr);
+    R visitFileReadExpr(FileReadExpr expr);
+    R visitCloseFilesExpr(CloseFilesExpr expr);
 }
 
 record Binary(Expr left, Token operator, Expr right) implements Expr
@@ -938,6 +1028,12 @@ record Binary(Expr left, Token operator, Expr right) implements Expr
     @Override public <R> R accept(ExprVisitor<R> visitor)
     {
         return visitor.visitBinaryExpr(this);
+    }
+}
+
+record FileReadExpr(Expr fileHandle, List<Expr> arguments) implements Expr {
+    @Override public <R> R accept(ExprVisitor<R> visitor) {
+        return visitor.visitFileReadExpr(this);
     }
 }
 
@@ -1010,6 +1106,14 @@ record Call(Expr callee, List<Expr> arguments) implements Expr
         return visitor.visitCallExpr(this);
     }
 }
+record CloseFilesExpr(List<Expr> fileHandles) implements Expr
+{
+    @Override
+    public <R> R accept(ExprVisitor<R> visitor)
+    {
+        return visitor.visitCloseFilesExpr(this);
+    }
+}
 
 interface Stmt
 {
@@ -1036,6 +1140,8 @@ interface StmtVisitor<R>
     R visitSleepStmt(Sleep stmt);
     R visitWaitForEnterStmt(WaitForEnter stmt);
     R visitWaitForEndStmt(WaitForEnd stmt);
+    R visitFileStmt(FileStmt stmt);
+    R visitFileWriteStmt(FileWriteStmt stmt);
 }
 
 record Block(List<Stmt> statements) implements Stmt
@@ -1193,6 +1299,22 @@ record Return(Token keyword, Expr value) implements Stmt
     }
 }
 
+record FileStmt(Token name, Expr path, FileOperation operation,  FileMode defaultMode, Expr modeExpr) implements Stmt
+{
+    @Override 
+    public <R> R accept(StmtVisitor<R> visitor)
+    {
+        return visitor.visitFileStmt(this);
+    }
+}
+record FileWriteStmt(Expr fileHandle, Expr content) implements Stmt
+{
+    @Override public <R> R accept(StmtVisitor<R> visitor)
+    {
+        return visitor.visitFileWriteStmt(this);
+    }
+}
+
 class Parser
 {
     private final List<Token> tokens;
@@ -1223,7 +1345,7 @@ class Parser
 
 
     private Stmt declaration()
-     {
+    {
         try
         {
             if (match(TokenType.INTEGER, TokenType.FLOAT, TokenType.STRING, TokenType.BOOLEAN))
@@ -1234,6 +1356,10 @@ class Parser
             {
                 return functionDeclaration();
             }
+            if (match(TokenType.FILE)) {
+                return fileDeclaration();
+            }
+
             if (match(TokenType.INTEGER_ARRAY, TokenType.FLOAT_ARRAY, TokenType.STRING_ARRAY, TokenType.BOOLEAN_ARRAY))
             {
                 return arrayDeclaration();
@@ -1241,12 +1367,45 @@ class Parser
             return statement();
         }
         catch (RuntimeException error)
-         {
+        {
             System.err.println("Parse error: " + error.getMessage());
             hadError = true;
             synchronize();
             return null;
         }
+    }
+
+    private Stmt fileDeclaration()
+    {
+        Token name = consume(TokenType.IDENTIFIER, "Expect file handle name.");
+        consume(TokenType.ASSIGN, "Expect '=' after file handle name.");
+        
+        if (match(TokenType.OPEN_FILE))
+        {
+            consume(TokenType.LEFT_PAREN, "Expect '(' after 'খোলো'.");
+            Expr path = expression();
+            
+            // Default to WRITE mode if not specified
+            FileMode mode = FileMode.WRITE;
+            Expr modeExpr = null;
+            
+            if (match(TokenType.COMMA))
+            {
+                // Store the mode expression to be evaluated at runtime
+                modeExpr = expression();
+                // If it's a string literal token, we can resolve it now
+                if (peek().type == TokenType.STRING_LITERAL)
+                {
+                    mode = FileMode.fromString((String)peek().literal);
+                }
+            }
+            
+            consume(TokenType.RIGHT_PAREN, "Expect ')' after file parameters.");
+            consume(TokenType.SEMICOLON, "Expect ';' after file declaration.");
+            return new FileStmt(name, path, FileOperation.OPEN, mode, modeExpr);
+        }
+        
+        throw new RuntimeException("Invalid file operation");
     }
 
     private Stmt functionDeclaration()
@@ -1277,7 +1436,7 @@ class Parser
         if (!check(TokenType.RIGHT_PAREN)) {
             do {
                 if (parameters.size() >= 30000)
-                 {
+                {
                     throw new RuntimeException("Can't have more than 30000 parameters.");
                 }
 
@@ -1327,16 +1486,26 @@ class Parser
         // Handle array initialization
         if (match(TokenType.ARROW))
         {
-            consume(TokenType.LEFT_BRACE, "Expect '{' after '→'");
-            if (!check(TokenType.RIGHT_BRACE))
-            {
-                do
-                {
-                    initialValues.add(expression());
-                }
-                while (match(TokenType.COMMA));
+            // Check for আর্গুমেন্ট() function call
+            if (match(TokenType.ARGUMENT))
+           {
+                consume(TokenType.LEFT_PAREN, "Expect '(' after 'আর্গুমেন্ট'");
+                consume(TokenType.RIGHT_PAREN, "Expect ')' after 'আর্গুমেন্ট'");
+                initialValues.add(new Call(
+                                      new Variable(new Token(TokenType.IDENTIFIER, "আর্গুমেন্ট", null, previous().line)),
+                                      Collections.emptyList()
+                                  ));
             }
-            consume(TokenType.RIGHT_BRACE, "Expect '}' after array initializers.");
+            // Normal array initialization
+            else {
+                consume(TokenType.LEFT_BRACE, "Expect '{' after '→'");
+                if (!check(TokenType.RIGHT_BRACE)) {
+                    do {
+                        initialValues.add(expression());
+                    } while (match(TokenType.COMMA));
+                }
+                consume(TokenType.RIGHT_BRACE, "Expect '}' after array initializers.");
+            }
         }
 
         consume(TokenType.SEMICOLON, "Expect ';' after array declaration.");
@@ -1412,7 +1581,7 @@ class Parser
         if (match(TokenType.SLEEP)) return sleepStatement();
         if (match(TokenType.WAIT_FOR_ENTER)) return waitForEnterStatement();
         if (match(TokenType.WAIT_FOR_END)) return waitForEndStatement();
-
+        if (match(TokenType.WRITE_FILE))return writeFileStatement();
         if (peek().type == TokenType.LEFT_PAREN)
         {
             throw new RuntimeException("Standalone condition without keyword  'যদি'(if) or  'লুপ' (loop).");
@@ -1429,6 +1598,17 @@ class Parser
 
         return expressionStatement();
     }
+    private Stmt writeFileStatement()
+    {
+        consume(TokenType.LEFT_PAREN, "Expect '(' after 'লিখ'.");
+        Expr fileHandle = expression();
+        consume(TokenType.COMMA, "Expect ',' after file handle.");
+        Expr content = expression();
+        consume(TokenType.RIGHT_PAREN, "Expect ')' after content.");
+        consume(TokenType.SEMICOLON, "Expect ';' after statement.");
+        return new FileWriteStmt(fileHandle, content);
+    }
+
     private Stmt waitForEnterStatement()
     {
         consume(TokenType.LEFT_PAREN, "Expect '(' after 'প্রেসে_থামো'");
@@ -1851,7 +2031,32 @@ class Parser
         {
             return bandhCall();
         }
+        // In the Parser class, update the primary() method where it handles READ_FILE
+     if (match(TokenType.READ_FILE))
+     {
+        consume(TokenType.LEFT_PAREN, "Expect '(' after 'পড়'.");
+        Expr fileHandle = expression();
+        
+        List<Expr> arguments = new Vector<>();
+        if (match(TokenType.COMMA))
+        {
+            // First argument
+            arguments.add(expression());
+            if (match(TokenType.COMMA))
+            {
+                // Second argument
+                arguments.add(expression());
+            }
+        }
+        
+        consume(TokenType.RIGHT_PAREN, "Expect ')' after arguments.");
+        return new FileReadExpr(fileHandle, arguments);
+    }
 
+        if (match(TokenType.CLOSE_FILE))
+        {
+            return closeFilesCall();
+        }
         if (match(TokenType.INTEGER_LITERAL, TokenType.FLOAT_LITERAL, TokenType.STRING_LITERAL))
         {
             Object value = previous().literal;
@@ -1866,6 +2071,13 @@ class Parser
             return new Literal(value);
         }
 
+        if (match(TokenType.TO_INT, TokenType.TO_FLOAT, TokenType.TO_STRING)) {
+            Token operator = previous();
+            consume(TokenType.LEFT_PAREN, "Expect '(' after conversion function");
+            Expr value = expression();
+            consume(TokenType.RIGHT_PAREN, "Expect ')' after value");
+            return new Unary(operator, value);
+        }
         if (match(TokenType.ARRAY_SIZE))
         {
             consume(TokenType.LEFT_PAREN, "Expect '(' after 'অ্যারের_আকার'");
@@ -1873,7 +2085,10 @@ class Parser
             consume(TokenType.RIGHT_PAREN, "Expect ')' after array expression");
             return new ArraySize(array);
         }
-
+        if (match(TokenType.DATATYPE))
+        {
+            return datatypeCall();
+        }
         // Handle built-in functions
         if (match(TokenType.BINARY_SEARCH))
         {
@@ -1916,6 +2131,29 @@ class Parser
         throw new RuntimeException("Expect expression.");
     }
 
+    private Expr closeFilesCall()
+    {
+        consume(TokenType.LEFT_PAREN, "Expect '(' after 'ফাইল_বন্ধ'.");
+        
+        List<Expr> fileHandles = new ArrayList<>();
+        if (!check(TokenType.RIGHT_PAREN)) {
+            do {
+                fileHandles.add(expression());
+            } while (match(TokenType.COMMA));
+        }
+        
+        consume(TokenType.RIGHT_PAREN, "Expect ')' after arguments.");
+        return new CloseFilesExpr(fileHandles);
+    }
+
+    private Expr datatypeCall()
+    {
+        consume(TokenType.LEFT_PAREN, "Expect '(' after 'ধরণ'");
+        Expr variable = expression();
+        consume(TokenType.RIGHT_PAREN, "Expect ')' after variable");
+        return new Call(new Variable(new Token(TokenType.IDENTIFIER, "ধরণ", null, previous().line)),
+                       Collections.singletonList(variable));
+    }
     private Expr increaseSizeCall()
     {
         Token functionToken = previous(); // Get the INCREASE_SIZE token
@@ -2070,8 +2308,8 @@ class Environment
     private final Map<String, Object> values = new LinkedHashMap<>();
     public final Map<String, Object[]> arrays = new LinkedHashMap<>();
     public final Map<String, Function> functions = new LinkedHashMap<>();
-    private final Map<String, TokenType> arrayTypes = new HashMap<>();
-
+    private final Map<String, TokenType> arrayTypes = new LinkedHashMap<>();
+    private final Map<String, Boolean> unlimitedArrays = new LinkedHashMap<>();
     Environment()
     {
         enclosing = null;
@@ -2080,6 +2318,40 @@ class Environment
     Environment(Environment enclosing)
     {
         this.enclosing = enclosing;
+    }
+    void defineArray(String name, TokenType type, Object[] array, boolean isUnlimited)
+    {
+        arrays.put(name, array);
+        arrayTypes.put(name, type);
+        if (isUnlimited)
+        {
+            unlimitedArrays.put(name, true);
+        }
+    }
+
+    boolean isArrayUnlimited(String name)
+    {
+        if (unlimitedArrays.containsKey(name))
+        {
+            return unlimitedArrays.get(name);
+        }
+        if (enclosing != null) return enclosing.isArrayUnlimited(name);
+        return false;
+    }
+
+    void assignArray(Token name, Object[] array)
+    {
+        if (arrays.containsKey(name.lexeme))
+         {
+            arrays.put(name.lexeme, array);
+            return;
+        }
+        if (enclosing != null)
+        {
+            enclosing.assignArray(name, array);
+            return;
+        }
+        throw new RuntimeException("Undefined array '" + name.lexeme + "'");
     }
 
     void defineFunction(String name, Function function)
@@ -2125,7 +2397,6 @@ class Environment
 
         // Copy functions (they can be shared as they're immutable once defined)
         copy.functions.putAll(this.functions);
-
         return copy;
     }
 
@@ -2159,8 +2430,6 @@ class Environment
 
         throw new RuntimeException("Undefined variable '" + name.lexeme + "' cannot be deleted");
     }
-
-
 
     void define(String name, Object value)
     {
@@ -2284,20 +2553,14 @@ class Environment
 }
 class GoToStartException extends RuntimeException
 {
-    public GoToStartException()
-    {
-
-    }
+    public GoToStartException(){}
 }
 class ClearScreenException extends RuntimeException
 {
-    public ClearScreenException()
-    {
-
-    }
+    public ClearScreenException(){}
 }
-class BreakException extends RuntimeException{}
-class ContinueException extends RuntimeException{}
+class BreakException extends RuntimeException {}
+class ContinueException extends RuntimeException {}
 
 class Interpreter implements ExprVisitor<Object>, StmtVisitor<Void>
 {
@@ -2305,6 +2568,127 @@ class Interpreter implements ExprVisitor<Object>, StmtVisitor<Void>
     private List<Stmt> statements; // Store the parsed statements
     private Environment originalEnvironment; //Store original environment data
     private String sourceCode; // Store the original source code
+    private final Map<Object, BufferedReader> fileReaders = new LinkedHashMap<>();
+    private final Map<Object, BufferedWriter> fileWriters = new LinkedHashMap<>();
+
+
+    private static class FileHandle
+    {
+            private RandomAccessFile raf;
+            private BufferedReader reader;
+            private BufferedWriter writer;
+            private final String path;
+            private final FileMode mode;
+            private final Charset charset = StandardCharsets.UTF_8;
+            private final Object lock = new Object();
+
+            FileHandle(String path, FileMode mode) throws IOException {
+                this.path = path;
+                this.mode = mode;
+                
+                File file = new File(path);
+                
+                // Only try to create parent directories if they don't exist
+                File parent = file.getParentFile();
+                if (parent != null && !parent.exists()) {
+                    parent.mkdirs();
+                }
+                
+                switch (mode) {
+                    case READ:
+                        if (!file.exists()) throw new FileNotFoundException(path);
+                        this.reader = new BufferedReader(
+                            new InputStreamReader(
+                                new FileInputStream(file), charset));
+                        break;
+                        
+                    case WRITE:
+                        this.writer = new BufferedWriter(
+                            new OutputStreamWriter(
+                                new FileOutputStream(file, false), charset));
+                        break;
+                        
+                    case APPEND:
+                        this.writer = new BufferedWriter(
+                            new OutputStreamWriter(
+                                new FileOutputStream(file, true), charset));
+                        break;
+                        
+                    case READ_WRITE:
+                        if (!file.exists()) throw new FileNotFoundException(path);
+                        this.raf = new RandomAccessFile(file, "rw");
+                        break;
+                        
+                    case WRITE_READ:
+                        this.raf = new RandomAccessFile(file, "rw");
+                        this.raf.setLength(0); // Truncate file
+                        break;
+                        
+                    case APPEND_READ:
+                        this.raf = new RandomAccessFile(file, "rw");
+                        this.raf.seek(this.raf.length()); // Seek to end
+                        break;
+                }
+            }
+           
+            String readAll() throws IOException {
+                if (reader != null) {
+                    // BufferedReader mode
+                    StringBuilder content = new StringBuilder();
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        content.append(line).append("\n");
+                    }
+                    // Reset reader
+                    reader.close();
+                    reader = new BufferedReader(new InputStreamReader(new FileInputStream(path), charset));
+                    return content.toString().trim();
+                } 
+                else if (raf != null) {
+                    // RandomAccessFile mode
+                    raf.seek(0);
+                    StringBuilder content = new StringBuilder();
+                    String line;
+                    while ((line = raf.readLine()) != null) {
+                        // Convert from bytes to UTF-8 string
+                        content.append(new String(line.getBytes(StandardCharsets.ISO_8859_1), charset)).append("\n");
+                    }
+                    // Reset position based on mode
+                    if (mode == FileMode.APPEND || mode == FileMode.APPEND_READ) {
+                        raf.seek(raf.length());
+                    } else {
+                        raf.seek(0);
+                    }
+                    return content.toString().trim();
+                }
+                throw new IOException("File not open for reading");
+            }
+        
+            void write(String content) throws IOException {
+                if (writer != null) {
+                    // BufferedWriter mode
+                    writer.write(content);
+                    writer.flush();
+                } 
+                else if (raf != null) {
+                    // RandomAccessFile mode - write as UTF-8 bytes
+                    raf.write(content.getBytes(charset));
+                }
+                else {
+                    throw new IOException("File not open for writing");
+                }
+            }
+
+                void close() throws IOException {
+        synchronized (lock) {
+            if (reader != null) reader.close();
+            if (writer != null) writer.close();
+            if (raf != null) raf.close();
+        }
+    }
+}
+    private final Map<String, FileHandle> fileHandles = new LinkedHashMap<>();
+
 
     void interpret(List<Stmt> statements)
     {
@@ -2338,8 +2722,6 @@ class Interpreter implements ExprVisitor<Object>, StmtVisitor<Void>
         }
     }
 
-
-
     private void execute(Stmt stmt)
     {
         stmt.accept(this);
@@ -2362,13 +2744,273 @@ class Interpreter implements ExprVisitor<Object>, StmtVisitor<Void>
         }
     }
 
+        @Override
+        public Void visitFileStmt(FileStmt stmt) {
+            Object path = evaluate(stmt.path());
+            if (!(path instanceof String)) {
+                throw new RuntimeException("File path must be a string");
+            }
+            
+            FileMode mode = stmt.defaultMode();
+            // Evaluate mode expression if present
+            if (stmt.modeExpr() != null) {
+                Object modeValue = evaluate(stmt.modeExpr());
+                if (modeValue instanceof String) {
+                    mode = FileMode.fromString((String)modeValue);
+                }
+            }
+            
+            try {
+                FileHandle handle = new FileHandle((String)path, mode);
+                fileHandles.put(stmt.name().lexeme, handle);
+                environment.define(stmt.name().lexeme, stmt.name().lexeme);
+            } catch (IOException e) {
+                throw new RuntimeException("File operation failed: " + e.getMessage());
+            }
+            return null;
+        }
+    @Override
+    public Void visitFileWriteStmt(FileWriteStmt stmt) {
+        Object handleName = evaluate(stmt.fileHandle());
+        Object content = evaluate(stmt.content());
+        
+        if (!(handleName instanceof String)) {
+            throw new RuntimeException("File handle must be a string");
+        }
+        
+        FileHandle handle = fileHandles.get(handleName);
+        if (handle == null) {
+            throw new RuntimeException("Invalid file handle");
+        }
+        
+        try {
+            // Ensure content is properly converted to String
+            String textContent;
+            if (content instanceof String) {
+                textContent = (String)content;
+            } else {
+                textContent = stringify(content);
+            }
+            handle.write(textContent);
+            return null;
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to write to file: " + e.getMessage());
+        }
+    }
+    // Add these methods to your Interpreter class
 
+    @Override
+    public Object visitFileReadExpr(FileReadExpr expr) {
+        // Validate file handle
+        Object handleName = evaluate(expr.fileHandle());
+        if (!(handleName instanceof String)) {
+            throw new RuntimeException("File handle must be a string");
+        }
+        
+        FileHandle handle = fileHandles.get(handleName);
+        if (handle == null) {
+            throw new RuntimeException("Invalid file handle '" + handleName + "'");
+        }
+    
+        try {
+            // Determine line range based on arguments
+            int startLine = 1;
+            int endLine = Integer.MAX_VALUE;
+            int totalLines = countLines(handle); // First count total lines in file
+            
+            if (!expr.arguments().isEmpty()) {
+                // Validate first argument
+                Object firstArg = evaluate(expr.arguments().get(0));
+                if (!(firstArg instanceof BigDecimal)) {
+                    throw new RuntimeException("Line number must be an integer");
+                }
+                int firstLine = ((BigDecimal)firstArg).intValue();
+                
+                // Handle negative line numbers
+                if (firstLine < 1) {
+                    throw new RuntimeException("Line number must be positive (got " + firstLine + ")");
+                }
+    
+                if (expr.arguments().size() == 1) {
+                    // Case: পড়(fileHandler, 4) - read first 4 lines
+                    startLine = 1;
+                    endLine = firstLine;
+                    
+                    // Check if requested lines exceed file size
+                    if (endLine > totalLines) {
+                        throw new RuntimeException("File only has " + totalLines + 
+                            " lines (requested up to line " + endLine + ")");
+                    }
+                } else if (expr.arguments().size() == 2) {
+                    // Case: পড়(fileHandler, 10, 20) - read lines 10-20
+                    startLine = firstLine;
+                    
+                    // Validate second argument
+                    Object secondArg = evaluate(expr.arguments().get(1));
+                    if (!(secondArg instanceof BigDecimal)) {
+                        throw new RuntimeException("Line number must be an integer");
+                    }
+                    endLine = ((BigDecimal)secondArg).intValue();
+                    
+                    // Validate line range
+                    if (endLine < 1) {
+                        throw new RuntimeException("Line number must be positive (got " + endLine + ")");
+                    }
+                    if (startLine > endLine) {
+                        throw new RuntimeException("Start line (" + startLine + 
+                            ") cannot be greater than end line (" + endLine + ")");
+                    }
+                    if (startLine > totalLines) {
+                        throw new RuntimeException("File only has " + totalLines + 
+                            " lines (requested start at line " + startLine + ")");
+                    }
+                    if (endLine > totalLines) {
+                        throw new RuntimeException("File only has " + totalLines + 
+                            " lines (requested up to line " + endLine + ")");
+                    }
+                } else {
+                    throw new RuntimeException("পড়() function accepts 1-3 arguments (got " + 
+                        expr.arguments().size() + ")");
+                }
+            }
+    
+            // Read the specified lines
+            StringBuilder content = new StringBuilder();
+            int currentLine = 0;
+            
+            if (handle.reader != null) {
+                // BufferedReader mode
+                String line;
+                while ((line = handle.reader.readLine()) != null) {
+                    currentLine++;
+                    if (currentLine >= startLine && currentLine <= endLine) {
+                        content.append(line).append("\n");
+                    }
+                    if (currentLine > endLine) break;
+                }
+                // Reset reader
+                handle.reader.close();
+                handle.reader = new BufferedReader(new InputStreamReader(
+                    new FileInputStream(handle.path), handle.charset));
+            } else if (handle.raf != null) {
+                // RandomAccessFile mode
+                handle.raf.seek(0);
+                String line;
+                while ((line = handle.raf.readLine()) != null) {
+                    currentLine++;
+                    if (currentLine >= startLine && currentLine <= endLine) {
+                        content.append(new String(line.getBytes(StandardCharsets.ISO_8859_1), 
+                            handle.charset)).append("\n");
+                    }
+                    if (currentLine > endLine) break;
+                }
+                // Reset position based on mode
+                if (handle.mode == FileMode.APPEND || handle.mode == FileMode.APPEND_READ) {
+                    handle.raf.seek(handle.raf.length());
+                } else {
+                    handle.raf.seek(0);
+                }
+            }
+            
+            return content.toString().trim();
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to read file: " + e.getMessage());
+        }
+    }
+
+    private int countLines(FileHandle handle) throws IOException {
+        int lines = 0;
+        
+        if (handle.reader != null) {
+            // Count lines using BufferedReader
+            while (handle.reader.readLine() != null) {
+                lines++;
+            }
+            // Reset reader
+            handle.reader.close();
+            handle.reader = new BufferedReader(new InputStreamReader(
+                new FileInputStream(handle.path), handle.charset));
+        } else if (handle.raf != null) {
+            // Count lines using RandomAccessFile
+            handle.raf.seek(0);
+            while (handle.raf.readLine() != null) {
+                lines++;
+            }
+            // Reset position
+            if (handle.mode == FileMode.APPEND || handle.mode == FileMode.APPEND_READ) {
+                handle.raf.seek(handle.raf.length());
+            } else {
+                handle.raf.seek(0);
+            }
+        }
+        
+        return lines;
+    }
+        
+    public void closeAllFiles() {
+        try {
+            for (FileHandle handle : fileHandles.values()) {
+                handle.close();
+            }
+            fileHandles.clear();
+        } catch (IOException e) {
+            System.err.println("Warning: Failed to close some files: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public Object visitCloseFilesExpr(CloseFilesExpr expr) {
+        List<Object> handles = new Vector<>();
+        for (Expr handleExpr : expr.fileHandles()) {
+            handles.add(evaluate(handleExpr));
+        }
+    
+        AtomicInteger successCount = new AtomicInteger(0);
+        AtomicInteger failureCount = new AtomicInteger(0);
+    
+        try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            List<Future<?>> futures = new ArrayList<>();
+    
+            for (Object handle : handles) {
+                futures.add(executor.submit(() -> {
+                    try {
+                        if (!(handle instanceof String)) {
+                            failureCount.incrementAndGet();
+                            return;
+                        }
+    
+                        FileHandle fileHandle = fileHandles.get((String) handle);
+                        if (fileHandle != null) {
+                            fileHandle.close();
+                            fileHandles.remove((String) handle);
+                            successCount.incrementAndGet();
+                        }
+                    } catch (Exception e) {
+                        System.err.println("Error closing file " + handle + ": " + e.getMessage());
+                        failureCount.incrementAndGet();
+                    }
+                }));
+            }
+    
+            // Wait for all tasks to complete
+            for (Future<?> future : futures) {
+                try {
+                    future.get();
+                } catch (Exception e) {
+                    System.err.println("Error waiting for file closure: " + e.getMessage());
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Executor service error: " + e.getMessage());
+        }
+    
+        return failureCount.get() == 0 ? 0 : -1;
+    }
 
     @Override
     public Void visitFunctionStmt(Function stmt) {
         // Store the function with its parameter types
         environment.defineFunction(stmt.name().lexeme, stmt);
-
         // If it's a temporary function, we don't need to do anything special here
         // The cleanup will happen in visitCallExpr after the function is called
         return null;
@@ -2428,7 +3070,6 @@ class Interpreter implements ExprVisitor<Object>, StmtVisitor<Void>
         return null;
     }
 
-
     @Override
     public Object visitCallExpr(Call expr) {
         // Handle built-in functions
@@ -2448,6 +3089,44 @@ class Interpreter implements ExprVisitor<Object>, StmtVisitor<Void>
                 System.gc();
                 System.exit(code);
                 return null;
+            }
+
+        // Inside visitCallExpr(), in the functionName.equals("ধরণ") block:
+            if (functionName.equals("ধরণ")) {
+                if (expr.arguments().size() != 1) {
+                    throw new RuntimeException("'ধরণ' expects exactly 1 argument");
+                }
+                Object value = evaluate(expr.arguments().get(0));
+            
+                // Check for file handles first
+                if (value instanceof String && fileHandles.containsKey(value))return "file";
+                
+                // Existing type checks
+                if (value == null) return "null";
+                if (value instanceof BigDecimal) {
+                    return ((BigDecimal)value).scale() <= 0 ? "int" : "float";
+                }
+                if (value instanceof String) return "string";
+                if (value instanceof Boolean) return "boolean";
+                if (value instanceof Object[]) {
+                    Object[] array = (Object[])value;
+                    if (array.length == 0) return "array:empty";
+                    Object first = array[0];
+                    if (first instanceof BigDecimal) {
+                        return ((BigDecimal)first).scale() <= 0 ? "array:int" : "array:float";
+                    }
+                    if (first instanceof String) return "array:string";
+                    if (first instanceof Boolean) return "array:boolean";
+                    return "array";
+                }
+                return "unknown";
+            }
+            // Handle argument function
+            if (functionName.equals("আর্গুমেন্ট")) {
+                if (!expr.arguments().isEmpty()) {
+                    throw new RuntimeException("'আর্গুমেন্ট' function takes no arguments");
+                }
+                return Main.commandLineArgs.toArray(new String[0]);
             }
 
             // Handle আকার_বাড়াও function
@@ -2587,20 +3266,16 @@ class Interpreter implements ExprVisitor<Object>, StmtVisitor<Void>
             // Strict type checking
             switch (param.type) {
             case INTEGER:
-                if (!(value instanceof BigDecimal)) {
-                    throw new RuntimeException("Parameter " + (i+1) + " must be an integer");
-                }
-                if (((BigDecimal)value).scale() > 0) {
-                    throw new RuntimeException("Parameter " + (i+1) + " must be an integer (no decimal places)");
-                }
-                value = ((BigDecimal)value).setScale(0, RoundingMode.DOWN);
-                break;
-
-            case FLOAT:
-                if (!(value instanceof BigDecimal)) {
-                    throw new RuntimeException("Parameter " + (i+1) + " must be a float");
-                }
-                break;
+    if (!(value instanceof BigDecimal)) {
+        throw new RuntimeException("Parameter " + (i+1) + " must be an integer");
+    }
+    // Only enforce no decimal places if not the pow function
+    if (!function.name().lexeme.equals("pow") && 
+        ((BigDecimal)value).scale() > 0) {
+        throw new RuntimeException("Parameter " + (i+1) + " must be an integer (no decimal places)");
+    }
+    value = ((BigDecimal)value).setScale(0, RoundingMode.DOWN);
+    break;
 
             case STRING:
                 if (!(value instanceof String)) {
@@ -3015,48 +3690,34 @@ class Interpreter implements ExprVisitor<Object>, StmtVisitor<Void>
     }
 
     @Override
-    public Void visitVarStmt(Var stmt)
-    {
+    public Void visitVarStmt(Var stmt) {
         Object value = null;
-        if (stmt.initializer() != null)
-        {
+        if (stmt.initializer() != null) {
             value = evaluate(stmt.initializer());
 
             // Convert to appropriate type based on variable declaration
-            if (value instanceof BigDecimal)
-            {
-                if (stmt.name().type == TokenType.INTEGER)
-                {
+            if (value instanceof BigDecimal) {
+                if (stmt.name().type == TokenType.INTEGER) {
                     // For পূর্ণসংখ্যা, remove decimal part
                     value = ((BigDecimal)value).setScale(0, RoundingMode.DOWN);
-                }
-            } else if (value instanceof String || value instanceof Boolean)
-            {
-                // Keep as is for strings and booleans
-            } else
-            {
-                // Convert other numbers to BigDecimal
-                if (value instanceof Integer)
-                {
-                    value = new BigDecimal((Integer)value);
-                } else if (value instanceof Double)
-                {
-                    value = BigDecimal.valueOf((Double)value);
+                } else if (stmt.name().type == TokenType.FLOAT) {
+                    // For ভগ্নাংশ, ensure it's stored as float
+                    if (((BigDecimal)value).scale() <= 0) {
+                        value = new BigDecimal(value.toString() + ".0");
+                    }
                 }
             }
         }
 
         // Set default values if no initializer
-        if (value == null)
-        {
-            if (stmt.name().type == TokenType.INTEGER || stmt.name().type == TokenType.FLOAT)
-            {
-                value = BigDecimal.ZERO;
-            } else if (stmt.name().type == TokenType.STRING)
-            {
+        if (value == null) {
+            if (stmt.name().type == TokenType.INTEGER) {
+                value = BigDecimal.ZERO.setScale(0, RoundingMode.DOWN);
+            } else if (stmt.name().type == TokenType.FLOAT) {
+                value = new BigDecimal("0.0");
+            } else if (stmt.name().type == TokenType.STRING) {
                 value = "";
-            } else if (stmt.name().type == TokenType.BOOLEAN)
-            {
+            } else if (stmt.name().type == TokenType.BOOLEAN) {
                 value = false;
             }
         }
@@ -3066,130 +3727,152 @@ class Interpreter implements ExprVisitor<Object>, StmtVisitor<Void>
     }
 
     @Override
-    public Void visitArrayStmt(ArrayStmt stmt)
-    {
+public Void visitArrayStmt(ArrayStmt stmt) {
+    Object[] array = null;
+    int size = 0;
+    boolean isArgumentFunction = false;
 
+    // Check if initializer is আর্গুমেন্ট() function call
+    if (!stmt.initialValues().isEmpty() &&
+            stmt.initialValues().size() == 1 &&
+            stmt.initialValues().get(0) instanceof Call) {
 
-        Object[] array = null;
-        int size = 0;
+        Call call = (Call)stmt.initialValues().get(0);
+        if (call.callee() instanceof Variable) {
+            Variable callee = (Variable)call.callee();
+            if (callee.name().lexeme.equals("আর্গুমেন্ট")) {
+                isArgumentFunction = true;
 
-        // Determine array size
-        if (stmt.size() != null)
-        {
-            Object sizeValue = evaluate(stmt.size());
-            if (!(sizeValue instanceof BigDecimal))
-            {
-                throw new RuntimeException("Array size must be an integer");
+                // Verify no arguments passed to আর্গুমেন্ট()
+                if (!call.arguments().isEmpty()) {
+                    throw new RuntimeException("আর্গুমেন্ট() function takes no arguments");
+                }
+
+                // Verify correct array type
+                if (stmt.type() != TokenType.STRING_ARRAY) {
+                    throw new RuntimeException("আর্গুমেন্ট() can only be used with বাক্যের_অ্যারে");
+                }
+
+                // Get command line arguments
+                array = Main.commandLineArgs.toArray(new String[0]);
+                size = array.length;
             }
-            size = ((BigDecimal)sizeValue).intValue();
-        } else if (!stmt.initialValues().isEmpty())
-        {
-            size = stmt.initialValues().size();
-        } else
-        {
-            throw new RuntimeException("Array size must be specified or initial values provided");
         }
+    }
 
-        // Initialize with default values based on type
-        switch (stmt.type())
-        {
+    // Handle array size if specified
+    if (stmt.size() != null && !isArgumentFunction) {
+        Object sizeValue = evaluate(stmt.size());
+        if (!(sizeValue instanceof BigDecimal)) {
+            throw new RuntimeException("Array size must be an integer");
+        }
+        size = ((BigDecimal)sizeValue).intValue();
+        if (size <= 0) {
+            throw new RuntimeException("Array size must be positive");
+        }
+    }
+    // Handle initial values if not আর্গুমেন্ট() and no size specified
+    else if (!stmt.initialValues().isEmpty() && !isArgumentFunction) {
+        size = stmt.initialValues().size();
+    }
+    // If no size or initial values provided, create empty array (unlimited)
+    else if (!isArgumentFunction) {
+        size = 0; // Start with empty array that will grow as needed
+    }
+
+    // Initialize array if not already initialized by আর্গুমেন্ট()
+    if (array == null) {
+        switch (stmt.type()) {
         case INTEGER_ARRAY:
             array = new BigDecimal[size];
-            for (int i = 0; i < size; i++)
-            {
+            for (int i = 0; i < size; i++) {
                 array[i] = BigDecimal.ZERO;
             }
             break;
         case FLOAT_ARRAY:
             array = new BigDecimal[size];
-            for (int i = 0; i < size; i++)
-            {
+            for (int i = 0; i < size; i++) {
                 array[i] = BigDecimal.ZERO;
             }
             break;
         case STRING_ARRAY:
             array = new String[size];
-            for (int i = 0; i < size; i++)
-            {
+            for (int i = 0; i < size; i++) {
                 array[i] = "";
             }
             break;
         case BOOLEAN_ARRAY:
             array = new Boolean[size];
-            for (int i = 0; i < size; i++)
-            {
+            for (int i = 0; i < size; i++) {
                 array[i] = false;
             }
             break;
         default:
             throw new RuntimeException("Unknown array type");
         }
+    }
 
-        // Apply initial values with strict type checking
-        for (int i = 0; i < stmt.initialValues().size(); i++)
-        {
-            if (i >= array.length)
-            {
-                throw new RuntimeException("Too many initial values for array");
+    // Apply initial values if not আর্গুমেন্ট()
+    if (!isArgumentFunction) {
+        for (int i = 0; i < stmt.initialValues().size(); i++) {
+            if (i >= array.length) {
+                // For unlimited arrays, resize when needed
+                int newSize = Math.max(array.length * 2, i + 1);
+                Object[] newArray = (Object[])java.lang.reflect.Array.newInstance(
+                                    array.getClass().getComponentType(), newSize);
+                System.arraycopy(array, 0, newArray, 0, array.length);
+                
+                // Initialize new elements with default values
+                Object defaultValue = getDefaultValue(array.getClass().getComponentType());
+                for (int j = array.length; j < newSize; j++) {
+                    newArray[j] = defaultValue;
+                }
+                
+                array = newArray;
             }
 
             Object value = evaluate(stmt.initialValues().get(i));
 
-
             // Strict type checking and conversion
-            switch (stmt.type())
-            {
+            switch (stmt.type()) {
             case INTEGER_ARRAY:
-                if (value instanceof BigDecimal)
-                {
+                if (value instanceof BigDecimal) {
                     BigDecimal bd = (BigDecimal)value;
                     array[i] = bd.setScale(0, RoundingMode.DOWN);
-
-                } else if (value instanceof Integer || value instanceof Double)
-                {
+                } else if (value instanceof Integer || value instanceof Double) {
                     BigDecimal bd = new BigDecimal(value.toString());
                     array[i] = bd.setScale(0, RoundingMode.DOWN);
-
-                } else
-                {
+                } else {
                     throw new RuntimeException("Integer array can only contain numbers");
                 }
                 break;
             case FLOAT_ARRAY:
-                if (value instanceof BigDecimal)
-                {
+                if (value instanceof BigDecimal) {
                     array[i] = (BigDecimal)value;
-                } else if (value instanceof Number)
-                {
+                } else if (value instanceof Number) {
                     array[i] = new BigDecimal(value.toString());
-                } else
-                {
+                } else {
                     throw new RuntimeException("Float array can only contain numbers");
                 }
-
                 break;
             case STRING_ARRAY:
                 array[i] = stringify(value);
-
                 break;
             case BOOLEAN_ARRAY:
-                if (value instanceof Boolean)
-                {
+                if (value instanceof Boolean) {
                     array[i] = value;
-                } else
-                {
+                } else {
                     throw new RuntimeException("Boolean array can only contain true/false values");
                 }
-
                 break;
             }
         }
-
-        environment.defineArray(stmt.name().lexeme, stmt.type(), array);
-
-
-        return null;
     }
+
+    environment.defineArray(stmt.name().lexeme, stmt.type(), array);
+    return null;
+}
+
     @Override
     public Object visitArraySizeExpr(ArraySize expr)
     {
@@ -3653,9 +4336,72 @@ class Interpreter implements ExprVisitor<Object>, StmtVisitor<Void>
             }
             throw new RuntimeException("Operand must be a number");
 
+        case TO_INT:
+            return convertToInt(right);
+        case TO_FLOAT:
+            return convertToFloat(right);
+        case TO_STRING:
+            return convertToString(right);
+
         default:
             throw new RuntimeException("Unknown operator");
         }
+    }
+    private BigDecimal convertToInt(Object value) {
+        if (value instanceof BigDecimal) {
+            return ((BigDecimal)value).setScale(0, RoundingMode.DOWN);
+        }
+        if (value instanceof String) {
+            try {
+                String s = ((String)value).trim();
+                if (s.contains(".")) {
+                    return new BigDecimal(s).setScale(0, RoundingMode.DOWN);
+                }
+                return new BigDecimal(s);
+            } catch (NumberFormatException e) {
+                throw new RuntimeException("Cannot convert string '" + value + "' to integer");
+            }
+        }
+        if (value instanceof Boolean) {
+            return (Boolean)value ? BigDecimal.ONE : BigDecimal.ZERO;
+        }
+        throw new RuntimeException("Cannot convert value to integer");
+    }
+
+    private BigDecimal convertToFloat(Object value) {
+
+        if (value instanceof BigDecimal)
+        {
+            return (BigDecimal)value;
+        }
+        if (value instanceof String) {
+            try {
+                String s = ((String)value).trim();
+                // If string doesn't contain decimal point, add .0 to force float conversion
+                if (!s.contains(".") && !s.contains("e") && !s.contains("E")) {
+                    s = s.concat(".0");
+                }
+                return new BigDecimal(s);
+            } catch (NumberFormatException e) {
+                throw new RuntimeException("Cannot convert string '" + value + "' to float");
+            }
+        }
+        if (value instanceof Boolean) {
+            return (Boolean)value ? BigDecimal.ONE : BigDecimal.ZERO;
+        }
+        throw new RuntimeException("Cannot convert value to float");
+    }
+    private String convertToString(Object value) {
+        if (value == null) return "null";
+        if (value instanceof BigDecimal) {
+            BigDecimal bd = (BigDecimal)value;
+            // Remove .0 for integer values
+            if (bd.scale() <= 0 || bd.stripTrailingZeros().scale() <= 0) {
+                return bd.toBigInteger().toString();
+            }
+            return bd.stripTrailingZeros().toPlainString();
+        }
+        return value.toString();
     }
 
     @Override
@@ -3698,153 +4444,199 @@ class Interpreter implements ExprVisitor<Object>, StmtVisitor<Void>
         throw new RuntimeException("Array expressions should be handled by ArrayStmt");
     }
 
-    @Override
-    public Object visitArrayAccessExpr(ArrayAccess expr)
-    {
-        Object array = evaluate(expr.array());
-        Object indexObj = evaluate(expr.index());
+@Override
+public Object visitArrayAccessExpr(ArrayAccess expr) {
+    Object array = evaluate(expr.array());
+    Object indexObj = evaluate(expr.index());
 
-        if (!(indexObj instanceof BigDecimal))
-        {
-            throw new RuntimeException("Array index must be an integer");
-        }
-
-        int index = ((BigDecimal)indexObj).intValue();
-
-        if (array instanceof Object[])
-        {
-            Object[] arr = (Object[])array;
-            if (index < 1 || index > arr.length)
-            {
-                throw new RuntimeException("Array index out of bounds");
-            }
-            return arr[index - 1]; // Convert from 1-based to 0-based
-        }
-        else if (array instanceof String)
-        {
-            String str = (String)array;
-            if (index < 1 || index > str.length())
-            {
-                throw new RuntimeException("String index out of bounds");
-            }
-            return String.valueOf(str.charAt(index - 1)); // Convert from 1-based to 0-based
-        }
-
-        throw new RuntimeException("Variable is not an array or string");
+    if (!(indexObj instanceof BigDecimal)) {
+        throw new RuntimeException("Array index must be an integer");
     }
 
+    int index = ((BigDecimal)indexObj).intValue();
 
-    @Override
-    public Object visitArrayAssignmentExpr(ArrayAssignment expr)
-    {
-        // Evaluate the array, index, and value
-        Object array = evaluate(expr.array());
-        Object indexObj = evaluate(expr.index());
-        Object value = evaluate(expr.value());
-
-        // Verify index is a number
-        if (!(indexObj instanceof BigDecimal))
-        {
-            throw new RuntimeException("Array index must be an integer");
-        }
-
-        // Convert index to 1-based integer
-        int index = ((BigDecimal)indexObj).intValue();
-
-        if (!(array instanceof Object[]))
-        {
-            throw new RuntimeException("Variable is not an array");
-        }
-
+    if (array instanceof Object[]) {
         Object[] arr = (Object[])array;
-
-        // Check bounds
-        if (index < 1 || index > arr.length)
-        {
-            throw new RuntimeException("Array index out of bounds (valid: 1-" + arr.length + ")");
-        }
-
-        // Get array type from environment
-        TokenType arrayType = null;
-        if (expr.array() instanceof Variable)
-        {
-            Token arrayName = ((Variable)expr.array()).name();
-            arrayType = environment.getArrayType(arrayName.lexeme);
-        }
-
-        // Convert value based on array type
-        Object convertedValue = value;
-
-        if (arr instanceof BigDecimal[])
-        {
-            // Handle numeric arrays (both integer and float)
-            if (value instanceof BigDecimal)
-            {
-                convertedValue = value;
-            } else if (value instanceof Integer)
-            {
-                convertedValue = new BigDecimal((Integer)value);
-            } else if (value instanceof Double)
-            {
-                convertedValue = BigDecimal.valueOf((Double)value);
-            } else
-            {
-                throw new RuntimeException("Numeric array can only contain numbers");
+        
+        // Handle unlimited array size - return default value if index exceeds current size
+        if (index > arr.length) {
+            if (expr.array() instanceof Variable) {
+                Token arrayName = ((Variable)expr.array()).name();
+                TokenType arrayType = environment.getArrayType(arrayName.lexeme);
+                
+                // Return appropriate default value
+                switch (arrayType) {
+                    case INTEGER_ARRAY:
+                    case FLOAT_ARRAY:
+                        return BigDecimal.ZERO;
+                    case STRING_ARRAY:
+                        return "";
+                    case BOOLEAN_ARRAY:
+                        return false;
+                    default:
+                        return null;
+                }
             }
-
-            // Special handling for integer arrays
-            if (arrayType == TokenType.INTEGER_ARRAY)
-            {
-                // Convert to integer by truncating decimals
-                convertedValue = ((BigDecimal)convertedValue).setScale(0, RoundingMode.DOWN);
-            }
+            throw new RuntimeException("Array index out of bounds");
         }
-        else if (arr instanceof String[])
-        {
-            convertedValue = stringify(value);
+        
+        if (index < 1) {
+            throw new RuntimeException("Array index must be positive (minimum 1)");
         }
-        else if (arr instanceof Boolean[])
-        {
-            if (!(value instanceof Boolean))
-            {
-                throw new RuntimeException("Boolean array can only contain true/false values");
-            }
-        }
-        else
-        {
-            throw new RuntimeException("Unknown array type");
-        }
-
-        // Store the converted value
-        arr[index - 1] = convertedValue;
-
-        return convertedValue;
+        return arr[index - 1]; // Convert from 1-based to 0-based
     }
+    else if (array instanceof String) {
+        String str = (String)array;
+        if (index < 1 || index > str.length()) {
+            throw new RuntimeException("String index out of bounds");
+        }
+        return String.valueOf(str.charAt(index - 1)); // Convert from 1-based to 0-based
+    }
+
+    throw new RuntimeException("Variable is not an array or string");
+}
+
+
+    @Override
+public Object visitArrayAssignmentExpr(ArrayAssignment expr) {
+    // Evaluate the array, index, and value
+    Object array = evaluate(expr.array());
+    Object indexObj = evaluate(expr.index());
+    Object value = evaluate(expr.value());
+
+    // Verify index is a number
+    if (!(indexObj instanceof BigDecimal)) {
+        throw new RuntimeException("Array index must be an integer");
+    }
+
+    // Convert index to 1-based integer
+    int index = ((BigDecimal)indexObj).intValue();
+
+    if (!(array instanceof Object[])) {
+        throw new RuntimeException("Variable is not an array");
+    }
+
+    Object[] arr = (Object[])array;
+
+    // Handle unlimited array size - resize if needed
+    if (index > arr.length) {
+        // Calculate new size (double current size or index, whichever is larger)
+        int newSize = Math.max(arr.length * 2, index);
+        
+        // Resize the array
+        Object[] newArr = (Object[])java.lang.reflect.Array.newInstance(
+                            arr.getClass().getComponentType(), newSize);
+        
+        // Copy old elements
+        System.arraycopy(arr, 0, newArr, 0, arr.length);
+        
+        // Initialize new elements with default values
+        Object defaultValue = getDefaultValue(arr.getClass().getComponentType());
+        for (int i = arr.length; i < newSize; i++) {
+            newArr[i] = defaultValue;
+        }
+        
+        // Update the array in environment
+        if (expr.array() instanceof Variable) {
+            Token arrayName = ((Variable)expr.array()).name();
+            Environment env = environment;
+            while (env != null) {
+                if (env.arrays.containsKey(arrayName.lexeme)) {
+                    env.arrays.put(arrayName.lexeme, newArr);
+                    break;
+                }
+                env = env.enclosing;
+            }
+        }
+        
+        arr = newArr;
+    }
+
+    // Check bounds (minimum index is still 1)
+    if (index < 1) {
+        throw new RuntimeException("Array index must be positive (minimum 1)");
+    }
+
+    // Get array type from environment
+    TokenType arrayType = null;
+    if (expr.array() instanceof Variable) {
+        Token arrayName = ((Variable)expr.array()).name();
+        arrayType = environment.getArrayType(arrayName.lexeme);
+    }
+
+    // Convert value based on array type
+    Object convertedValue = value;
+
+    if (arr instanceof BigDecimal[]) {
+        // Handle numeric arrays (both integer and float)
+        if (value instanceof BigDecimal) {
+            convertedValue = value;
+        } else if (value instanceof Integer) {
+            convertedValue = new BigDecimal((Integer)value);
+        } else if (value instanceof Double) {
+            convertedValue = BigDecimal.valueOf((Double)value);
+        } else {
+            throw new RuntimeException("Numeric array can only contain numbers");
+        }
+
+        // Special handling for integer arrays
+        if (arrayType == TokenType.INTEGER_ARRAY) {
+            // Convert to integer by truncating decimals
+            convertedValue = ((BigDecimal)convertedValue).setScale(0, RoundingMode.DOWN);
+        }
+    }
+    else if (arr instanceof String[]) {
+        convertedValue = stringify(value);
+    }
+    else if (arr instanceof Boolean[]) {
+        if (!(value instanceof Boolean)) {
+            throw new RuntimeException("Boolean array can only contain true/false values");
+        }
+    }
+    else {
+        throw new RuntimeException("Unknown array type");
+    }
+
+    // Store the converted value
+    arr[index - 1] = convertedValue;
+
+    return convertedValue;
+}
+
 
     private Object evaluate(Expr expr)
     {
         return expr.accept(this);
     }
 
-    private String stringify(Object object)
-    {
+    private String stringify(Object object) {
         if (object == null) return "null";
-        if (object instanceof BigDecimal)
-        {
+        if (object instanceof BigDecimal) {
             BigDecimal bd = (BigDecimal)object;
-            // Remove .0 for integer values
-            if (bd.scale() <= 0 || bd.stripTrailingZeros().scale() <= 0)
-            {
+            // Check if this is a float variable (has decimal places or is declared as float)
+            boolean isFloat = bd.scale() > 0 ||
+                              (object instanceof Variable &&
+                               ((Variable)object).name().type == TokenType.FLOAT);
+
+            if (isFloat) {
+                // For floats, always show decimal part
+                String str = bd.stripTrailingZeros().toPlainString();
+                // Ensure it shows as float if it's a whole number but declared as float
+                if (!str.contains(".")) {
+                    str += ".0";
+                }
+                return str;
+            } else {
+                // For integers, remove decimal part
                 return bd.toBigInteger().toString();
             }
-            return bd.stripTrailingZeros().toPlainString();
         }
-        if (object instanceof Object[])
-        {
+        if (object instanceof Object[]) {
             return Arrays.toString((Object[])object);
         }
         return object.toString();
     }
+
 
     private boolean isEqual(Object a, Object b)
     {
@@ -4039,12 +4831,24 @@ class ArrayManipulator
 
 public class Main
 {
-    static
-    {
+    // ANSI escape codes for foreground colors
+    public static String RESET = new String("\u001b[0m"), RED = new String("\u001b[31m"), GREEN = new String("\u001b[32m"),  BLUE = new String("\u001b[34m"), YELLOW = new String("\u001b[33m"), CLEAR_SCREEN =  new String("\033[2J"), currentVersion = new String(), BUILD_DATE = new String(), OS_NAME = new String();
+    public static List<String> commandLineArgs = new Vector<>();
 
+    static {
+        System.setProperty("file.encoding", "UTF-8");
+        Locale.setDefault(Locale.US);
+        currentVersion = new String("1.2");
+        BUILD_DATE = new String(__COMPILE_TIMESTAMP__ );
+        OS_NAME = new String(System.getProperty("os.name"));
+        try {
+            System.setOut(new PrintStream(System.out, true, "UTF-8"));
+            System.setErr(new PrintStream(System.err, true, "UTF-8"));
+       } catch (Exception e) {
+            System.err.println("Warning: Could not set UTF-8 encoding for console");
+       }
     }
     private enum TimeUnit { AUTO, S, MS, NS, JSON }
-
     public static void main(String[] args)
     {
         String filename = "";
@@ -4052,181 +4856,209 @@ public class Main
         Instant start = null;
         Runtime runtime = Runtime.getRuntime();
         long memBefore = 0;
-        
-        try 
+        boolean showTime = false;
+        boolean showMem = false;
+        TimeUnit timeUnit = TimeUnit.AUTO;
+
+        try
         {
-            for (int i = 0; i < args.length; i++) 
+            // First pass: Process all interpreter flags
+            int i;
+            for (i = 0; i < args.length; i++)
             {
-                String arg = args[i];
-                
-                // Handle flags in order
-                if (arg.startsWith("-")) 
+                String arg = new String(args[i]);
+
+                if (arg.startsWith("-"))
                 {
-                    switch (arg) 
+                    switch (arg.toLowerCase())
                     {
-                        case "-help":
-                            printUsage();
-                            continue;
-                            
-                        case "-version":
-                        case "-v":
-                            System.out.println("KalpanaLang version 1.1");
-                            continue;
-                            
-                        case "-contributors":
-                        case "-helper":
-                        case "-helpers":
-                            System.out.println("Main contributors are: \n- Hasin Israk Toaha.\n- Fabiha Islam (Deeba).\n- Hafsa Akter.\n- Ritu Moni.\n- Akash Mitro (Nill).\n- Sifat Hossen.\n- Sojib Islam (Akash).\n- Lamia Akter.\n- Sarmin Akter.\n- Siam Hossen.\n- Sahanaj Mim.\n- Avijit Dewry.\n");
-                            System.gc();
-                            continue;
-                            
-                        case "-time":
-                        case "-time:s":
-                        case "-time:ms":
-                        case "-time:ns":
-                        case "-time:json":
-                        case "-mem":
-                            if (!fileExecuted) 
-                            {
-                                System.err.println("\u001b[31m" + "Error: Please provide a .kls file before performance flags" + "\u001b[0m");
-                                printUsage();
-                                System.gc();
-                                System.exit(1);
+                    case "-help":
+                        printUsage();
+                        System.gc();
+                        System.exit(0);
+                    case "-clear":
+                        try {
+                            if (System.getProperty("os.name").toLowerCase().contains("win")) {
+                                new ProcessBuilder("cmd", "/c", "cls").inheritIO().start().waitFor();
+                            } else {
+                                new ProcessBuilder("clear").inheritIO().start().waitFor();
                             }
-                            break;
-                            
-                        default:
-                            System.err.println("\u001b[31m" + "Error: Unknown option '" + arg + "'" + "\u001b[0m");
-                            printUsage();
-                            System.gc();
-                            System.exit(1);
-                    }
-                }
-                else if (arg.endsWith(".kls")) 
-                {
-                    if (fileExecuted) 
-                    {
-                        System.err.println("\u001b[31m" + "Error: Only one .kls file can be executed" + "\u001b[0m");
+                        } catch (Exception exception) {
+                            System.err.println("Something went wrong to clear screen");
+                        }
+                        continue;
+
+                    case "-version":
+                    case "-v":
+                        System.out.println("KalpanaLang version " + currentVersion);
+                        System.gc();
+                        System.exit(0);
+
+                    case "-about":
+                        System.out.println(YELLOW + "        ==========About KalpanaLang==========\nKalpanaLang is a mainly Bangla based interpreted programming language.Syntax is similar to C/C++ & Java.By adding language pack, a user can write program in his own native language.Current version supports Bangla, English,Rush(Cyrillic) & Hindi. KalpanaLang\'s very first version built by Hasin Israk Toaha with his high-school & childhood friends.\nIt was his dream project.Users can learn programming concept by KalpanaLang.\nOk, enjoy KalpanaLang!\n\n•Main contributors are:\n\n- Hasin Israk Toaha.\n- Fabiha Islam (Deeba).\n- Hafsa Akter.\n- Ritu Moni.\n- Akash Mitro (Nill).\n- Sifat Hossen.\n- Sojib Islam (Akash).\n- Lamia Akter.\n- Sarmin Akter.\n- Siam Hossen.\n- Sahanaj Mim.\n- Avijit Dewry.\n\n•Contact to us:\nE-Mail: toaha.banaripara@gmail.com\nGithub: https://www.github.com/toaha63/KalpanaLang/\nPhone: +8801317936503\n\n•Specifications: \n- Interpreter Version: " +currentVersion + "\n- OS Name: " + OS_NAME +"\n- Build date: " +BUILD_DATE + RESET);
+                        System.gc();
+                        System.exit(0);
+
+                    case "-contributors":
+                    case "-helper":
+                    case "-helpers":
+                        System.out.println(YELLOW + "•Main contributors are: \n\n- Hasin Israk Toaha.\n- Fabiha Islam (Deeba).\n- Hafsa Akter.\n- Ritu Moni.\n- Akash Mitro (Nill).\n- Sifat Hossen.\n- Sojib Islam (Akash).\n- Lamia Akter.\n- Sarmin Akter.\n- Siam Hossen.\n- Sahanaj Mim.\n- Avijit Dewry." + RESET);
+                        System.gc();
+                        System.exit(0);
+
+                    case "-time":
+                        showTime = true;
+                        timeUnit = TimeUnit.AUTO;
+                        continue;
+
+                    case "-time:s":
+                        showTime = true;
+                        timeUnit = TimeUnit.S;
+                        continue;
+
+                    case "-time:ms":
+                        showTime = true;
+                        timeUnit = TimeUnit.MS;
+                        continue;
+
+                    case "-time:ns":
+                        showTime = true;
+                        timeUnit = TimeUnit.NS;
+                        continue;
+
+                    case "-time:json":
+                        showTime = true;
+                        timeUnit = TimeUnit.JSON;
+                        continue;
+
+                    case "-mem":
+                        showMem = true;
+                        continue;
+
+                    default:
+                        System.err.println(RED + "Error: Unknown option '" + arg + "'" + RESET);
                         printUsage();
                         System.gc();
                         System.exit(1);
                     }
-                    
-                    filename = arg;
-                    start = Instant.now();
-                    memBefore = runtime.totalMemory() - runtime.freeMemory();
-                    
-                    // Execute the file
-                    try 
-                    {
-                        Path path = Paths.get(filename);
-                        if (!Files.exists(path)) 
-                        {
-                            throw new RuntimeException("\u001b[31m"+"File not found: " + filename + "\u001b[0m");
-                        }
-    
-                        String source = Files.readString(path);
-                        List<String> libraryImports = extractLibraryImports(source);
-                        Interpreter interpreter = new Interpreter();
-    
-                        // Process libraries
-                        for (String libPath : libraryImports) 
-                        {
-                            processLibraryFile(libPath, interpreter);
-                        }
-    
-                        // Process main file
-                        String cleanedSource = removeLibraryImports(source);
-                        String translatedSource = LanguageTranslator.translateToBangla(cleanedSource);
-    
-                        // Execution
-                        Lexer lexer = new Lexer(translatedSource);
-                        List<Token> tokens = lexer.scanTokens();
-                        Parser parser = new Parser(tokens);
-                        List<Stmt> statements = parser.parse();
-                        interpreter.interpret(statements);
-                        
-                        fileExecuted = true;
-                    } 
-                    catch (Exception e) 
-                    {
-                        System.err.println("\u001b[31m" + "Error executing file: " + e.getMessage() + "\u001b[0m");
-                        System.exit(1);
-                    }
                 }
-                else 
+                else if (arg.endsWith(".kls"))
                 {
-                    System.err.println("\u001b[31m" + "Error: Unknown argument '" + arg + "'" + "\u001b[0m");
+                    filename = arg;
+                    break; // Exit flag processing loop
+                }
+                else
+                {
+                    System.err.println(RED + "Error: Flags must come before source file. Found '" + arg + "' before source file" + RESET);
                     printUsage();
                     System.gc();
                     System.exit(1);
                 }
             }
-            
-            // Process performance flags after all other processing
-            if (fileExecuted) 
+
+            // If we found a source file, collect remaining args as script arguments
+            if (!filename.isEmpty())
             {
-                Duration elapsed = Duration.between(start, Instant.now());
-                long memAfter = runtime.totalMemory() - runtime.freeMemory();
-                
-                for (int i = 0; i < args.length; i++) 
+                for (int j = i + 1; j < args.length; j++)
                 {
-                    String arg = args[i];
-                    
-                    switch (arg) 
+                    commandLineArgs.add(args[j]);
+                }
+
+                // Execute the file
+                start = Instant.now();
+                memBefore = runtime.totalMemory() - runtime.freeMemory();
+
+                try
+                {
+                    Path path = Paths.get(filename);
+                    if (!Files.exists(path))
                     {
-                        case "-time":
-                            System.out.println("Execution time: " + formatDuration(elapsed, TimeUnit.AUTO));
-                            break;
-                            
-                        case "-time:s":
-                            System.out.println("Execution time: " + formatDuration(elapsed, TimeUnit.S));
-                            break;
-                            
-                        case "-time:ms":
-                            System.out.println("Execution time: " + formatDuration(elapsed, TimeUnit.MS));
-                            break;
-                            
-                        case "-time:ns":
-                            System.out.println("Execution time: " + formatDuration(elapsed, TimeUnit.NS));
-                            break;
-                            
-                        case "-time:json":
-                            System.out.println(formatAsJson(elapsed, memBefore, memAfter));
-                            break;
-                            
-                        case "-mem":
-                            System.out.printf("Memory used: %.3f MB\n", 
-                                (memAfter - memBefore) / (1024.0 * 1024.0));
-                            break;
+                        throw new RuntimeException(RED+"File not found: " + filename + RESET);
                     }
+
+                    String source = Files.readString(path, StandardCharsets.UTF_8);
+                    List<String> libraryImports = extractLibraryImports(source);
+                    Interpreter interpreter = new Interpreter();
+
+                    // Process libraries
+                    for (String libPath : libraryImports)
+                    {
+                        processLibraryFile(libPath, interpreter);
+                    }
+
+                    // Process main file
+                    String cleanedSource = removeLibraryImports(source);
+                    String translatedSource = LanguageTranslator.translateToBangla(cleanedSource);
+
+                    // Execution
+                    Lexer lexer = new Lexer(translatedSource);
+                    List<Token> tokens = lexer.scanTokens();
+                    Parser parser = new Parser(tokens);
+                    List<Stmt> statements = parser.parse();
+                    interpreter.interpret(statements);
+
+                    fileExecuted = true;
+                }
+                catch (Exception e)
+                {
+                    System.err.println(RED + "Error executing file: " + e.getMessage() + RESET);
+                    System.exit(1);
                 }
             }
-            else if (args.length == 0) 
+            else if (args.length == 0)
             {
                 printUsage();
                 System.gc();
                 System.exit(1);
             }
-        } 
-        finally 
+
+            // Show performance metrics if requested
+            if (fileExecuted)
+            {
+                Duration elapsed = Duration.between(start, Instant.now());
+                long memAfter = runtime.totalMemory() - runtime.freeMemory();
+
+                if (showTime)
+                {
+                    if (timeUnit == TimeUnit.JSON)
+                    {
+                        System.out.println(formatAsJson(elapsed, memBefore, memAfter));
+                    }
+                    else
+                    {
+                        System.out.println("Execution time: " + formatDuration(elapsed, timeUnit));
+                    }
+                }
+
+                if (showMem)
+                {
+                    System.out.printf("Memory used: %.3f MB\n",
+                                      (memAfter - memBefore) / (Math.pow(1024.00,2.00)));
+                }
+            }
+        }
+        finally
         {
             System.gc();
         }
-}
+    }
 
+        
     private static String formatDuration(Duration duration, TimeUnit unit)
     {
         switch (unit)
         {
-            case S: return String.format("%.4fs", duration.toNanos() / 1_000_000_000.0);
-            case MS: return String.format("%.2fms", duration.toNanos() / 1_000_000.0);
-            case NS: return duration.toNanos() + "ns";
-            case AUTO:
-            default:
-                if (duration.toMillis() < 1) return duration.toNanos() + "ns";
-                if (duration.toSeconds() < 1) return String.format("%.2fms", duration.toNanos() / 1_000_000.0);
-                return String.format("%.4fs", duration.toNanos() / 1_000_000_000.0);
+        case S:
+            return String.format("%.4fs", duration.toNanos() / 1_000_000_000.0);
+        case MS:
+            return String.format("%.2fms", duration.toNanos() / 1_000_000.0);
+        case NS:
+            return duration.toNanos() + "ns";
+        case AUTO:
+        default:
+            if (duration.toMillis() < 1) return duration.toNanos() + "ns";
+            if (duration.toSeconds() < 1) return String.format("%.2fms", duration.toNanos() / 1_000_000.0);
+            return String.format("%.4fs", duration.toNanos() / 1_000_000_000.0);
         }
     }
 
@@ -4234,14 +5066,14 @@ public class Main
     {
         double seconds = elapsed.toNanos() / 1_000_000_000.0;
         double memoryMB = (memAfter - memBefore) / (1024.0 * 1024.0);
-        
-        return String.format("{\"time\": %.6f, \"unit\": \"s\", \"memory_mb\": %.2f}", 
-            seconds, memoryMB);
+
+        return String.format("{\"time\": %.6f, \"unit\": \"s\", \"memory_mb\": %.2f}",
+                             seconds, memoryMB);
     }
 
     private static void printUsage()
     {
-        System.err.println("Usage: kalpana <file.kls> [options]");
+        System.err.println(BLUE + "Usage: kalpana <file.kls> [options]" + RESET);
         System.err.println("Options:");
         System.err.println("  -time           Show execution time (auto units)");
         System.err.println("  -time:s         Show time in seconds");
@@ -4252,20 +5084,18 @@ public class Main
         System.err.println("  -contributors   Show contributors list");
         System.err.println("  -helpers        Alias for -contributors");
         System.err.println("  -help           Open help pad");
+        System.out.println("  -about          About KalpanaLang");
     }
-    
+
     // Helper method to extract library imports
     private static List<String> extractLibraryImports(String source)
     {
         List<String> imports = new Vector<>();
         String[] lines = source.split("\\r?\\n");
 
-        // Pattern to match: লাইব্রেরী "path/to/library.klm";
-        Pattern importPattern = Pattern.compile("^\\s*লাইব্রের[ীি]\\s*\"([^\"]+\\.klm)\"\\s*;\\s*$",Pattern.UNICODE_CASE);
-
         for (String line : lines)
         {
-            Matcher matcher = importPattern.matcher(line);
+            Matcher matcher = Pattern.compile("^\\s*লাইব্রের[ীি]\\s*\"([^\"]+\\.klm)\"\\s*;\\s*$",Pattern.UNICODE_CASE).matcher(line);
             if (matcher.matches())
             {
                 imports.add(matcher.group(1));
@@ -4305,72 +5135,49 @@ public class Main
     }
 
     // processLibraryFile method
-        private static void processLibraryFile(String libPath, Interpreter interpreter) throws IOException
+    private static void processLibraryFile(String libPath, Interpreter interpreter) throws IOException
     {
-        List<Path> searchPaths = new Vector<>();
-        
-        // 1. Add system module paths (Termux and Linux)
-        String systemModulePath = System.getenv("KALPANA_MODULE_PATH");
-        if (systemModulePath != null)
-        {
-            for (String path : systemModulePath.split(":"))
-            {
-                searchPaths.add(Paths.get(path));
-            }
-        }
-        
-        // 2. Add default system paths
-        if (System.getProperty("os.name").toLowerCase().contains("linux"))
-        {
-            if (System.getenv("PREFIX") != null) //Termux
-            {
-                searchPaths.add(Paths.get(System.getenv("PREFIX"), "share", "KalpanaLang", "modules"));
-            } else { // Regular Linux.
-                searchPaths.add(Paths.get("/usr/share/KalpanaLang/modules"));
-                searchPaths.add(Paths.get("/usr/local/share/KalpanaLang/modules"));
-            }
-        }
+        Path libFilePath;
 
-        // 3. Add user home directory path
-        searchPaths.add(Paths.get(System.getProperty("user.home"), ".kalpana", "modules"));
-
-        // 4. Add original path (absolute or relative)
+        // If the path is absolute or contains directory separators, use as-is
         if (libPath.startsWith("/") || libPath.startsWith("\\") || libPath.contains("/") || libPath.contains("\\"))
         {
-            searchPaths.add(Paths.get(libPath));
-        } else {
-            searchPaths.add(getInterpreterDirectory().resolve(libPath));
-            searchPaths.add(Paths.get(libPath));
-        }
-    
-        // Search through all possible paths
-        Path foundPath = null;
-        for (Path basePath : searchPaths)
+            libFilePath = Paths.get(libPath);
+        } else
         {
-            Path testPath = basePath.resolve(libPath);
-            if (Files.exists(testPath))
+            // For simple filenames, look in the interpreter directory first
+            Path interpreterDir = getInterpreterDirectory();
+            libFilePath = interpreterDir.resolve(libPath);
+
+            // If not found in interpreter directory, try current working directory
+            if (!Files.exists(libFilePath))
             {
-                foundPath = testPath;
-                break;
+                libFilePath = Paths.get(libPath);
             }
         }
-    
-        if (foundPath == null)
+
+        if (!Files.exists(libFilePath))
         {
-            throw new RuntimeException("Library file not found: " + libPath + 
-                "\nSearched in: " + searchPaths);
+            throw new RuntimeException("Library file not found: " + libFilePath);
         }
-    
+
         if (!libPath.toLowerCase().endsWith(".klm"))
         {
             throw new RuntimeException("Library file must have .klm extension: " + libPath);
         }
-    
-        String libSource = Files.readString(foundPath);
+
+        String libSource = Files.readString(libFilePath);
         String translatedSource = LanguageTranslator.translateToBangla(libSource);
-    
-        // Process library file & Interpret the library.
-        interpreter.interpret(new Parser(new Lexer(translatedSource).scanTokens()).parse());
+
+        // Process library file
+        Lexer lexer = new Lexer(translatedSource);
+        List<Token> tokens = lexer.scanTokens();
+
+        Parser parser = new Parser(tokens);
+        List<Stmt> statements = parser.parse();
+
+        // Interpret the library
+        interpreter.interpret(statements);
     }
 
 // Helper method to remove library imports from source
@@ -4380,11 +5187,9 @@ public class Main
         StringBuilder cleaned = new StringBuilder();
         boolean importsEnded = false;
 
-        Pattern importPattern = Pattern.compile("^\\s*লাইব্রের[ীি]\\s*\"([^\"]+\\.klm)\"\\s*;\\s*$",Pattern.UNICODE_CASE);
-
         for (String line : lines)
         {
-            if (!importsEnded && importPattern.matcher(line).matches())
+            if (!importsEnded && Pattern.compile("^\\s*লাইব্রের[ীি]\\s*\"([^\"]+\\.klm)\"\\s*;\\s*$",Pattern.UNICODE_CASE).matcher(line).matches())
             {
                 continue; // Skip import lines
             }
@@ -4399,7 +5204,11 @@ public class Main
                 cleaned.append(line).append("\n");
             }
         }
-
         return new String(cleaned.toString());
     }
 }
+//Package make:jpackage --type app-image -n KalpanaLang  --input "/storage/F717-19EC/Interpreter Backup" --main-jar KalpanaLang.jar --main-class Main  --runtime-image /data/data/com.termux/files/usr/lib/jvm/java-21-openjdk/  --dest ~
+
+//Jar make: jar --create -e Main --file KalpanaLang.jar *.class && jarsigner -keystore kalpanaKeystore.jks -storepass ,aajja000 -keypass ,aajja000 KalpanaLang.jar kalpanaKey
+
+//Run: clear&&mkdir -p temp && cp Main.java temp/ && cd temp &&TIMESTAMP=$(date | awk '{split($4, t, ":");h = $4 + 0; ap = (h >= 12) ? "PM" : "AM"; h12 = (h > 12) ? h - 12 : h;h12 = (h12 == 0) ? 12 : h12;month_num =(index("JanFebMarAprMayJunJulAugSepOctNovDec", $2)+ 2) / 3;printf "%02d.%02d.%s, %02d:%s:%s %s (GMT%s)", $3, month_num, $6, h12, t[2], t[3], ap, $5}') && sed -i "s|__COMPILE_TIMESTAMP__|\"$TIMESTAMP\"|" Main.java && javac -d .. Main.java && cd .. && rm -rf temp
