@@ -200,4 +200,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 3. QuickEdit.
 4. Memory Card.
 
+### Warning ⚠️
+- Building from source can be cause an Error. To solve it, replace, ```__COMPILE_TIMESTAMP__``` to accual date-time when you're building.
+
 This project is the result of collaborative effort from all team members who contributed their time, skills, and creativity to make KalpanaLang a reality.
+
+
