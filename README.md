@@ -205,4 +205,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 This project is the result of collaborative effort from all team members who contributed their time, skills, and creativity to make KalpanaLang a reality.
 
+### Note
+A special edition will be  release in memory of the "Milestone School and College" plain crash tragedy. Decicated to all my brother & sisters ❤️. Please pray for them.
 
