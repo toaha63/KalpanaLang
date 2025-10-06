@@ -1,0 +1,579 @@
+/*
+        * math.klm - A Comprehensive Standard Mathematical Library for Kalpana.
+        * All functions documented and formatted.
+        
+        @Since: 1.1
+        @Class adoption in 1.3
+        @Library written by:
+                                                1) Hafsa Akter.
+                                                2) Fabiha Islam.
+                                                3) Ritu Moni.
+        @Author: Kalpana's Dev Team.
+        @Contact: toaha.banaripara@gmail.com
+        @Github: https://www.github.com/toaha63/KalpanaLang/
+
+        ©ALL RIGHT RECEIVED under MIT LICENSE
+
+        Written in: [In unknown time]
+        Class adoption date : 26/09/2025  GMT+06:00
+*/
+
+ক্লাস Math = {
+
+/* 
+ * Mathematical Constants
+ */
+     ভগ্নাংশ PI = 3.141592653589793;
+    ভগ্নাংশ E = 2.718281828459045235360;
+    ভগ্নাংশ PI_OVER_180 = 3.141592653589793/ 180.0;
+    
+    /*
+     * Helper function: factorial
+     * Input: Integer n
+     * Output: Integer
+     * Computes: n! = n × (n-1) × ... × 1
+     */
+    
+    ফাংশন পূর্ণসংখ্যা factorial(পূর্ণসংখ্যা n)
+    {
+        পূর্ণসংখ্যা temp = 1;
+        লুপ(পূর্ণসংখ্যা term = n; term >= 1; term --)
+        {
+                temp = temp * term;
+        }
+        ফেরত temp;
+    }
+    
+    
+    /*
+     * Helper function: absolute value
+     * Input: ভগ্নাংশ x
+     * Output: ভগ্নাংশ
+     * Computes: |x|
+     */
+    ফাংশন ভগ্নাংশ abs(ভগ্নাংশ x)
+    {
+       ভগ্নাংশ x = ভগ্নাংশে(x);
+        যদি (x < 0)
+        {
+            ফেরত -x;
+        }
+        বা
+        {
+            ফেরত x;
+        }
+    }
+    
+    /*
+     * Integer power function
+     * Input: ভগ্নাংশ base, পূর্ণসংখ্যা exponent
+     * Output: ভগ্নাংশ
+     * Computes: base^exponent
+     * Note: Uses iterative method for efficiency
+     */
+    ফাংশন ভগ্নাংশ intPower(ভগ্নাংশ base, ভগ্নাংশ exponent)
+    {
+       ভগ্নাংশ base = ভগ্নাংশে(base);
+        যদি (exponent == 0)
+        {
+            ফেরত 1.0;
+        }
+        
+        ভগ্নাংশ result = base;
+        পূর্ণসংখ্যা absExp;
+        
+        যদি (exponent < 0)
+        {
+            absExp = -exponent;
+        }
+        বা
+        {
+            absExp = exponent;
+        }
+        
+        লুপ (পূর্ণসংখ্যা i = 1; i < absExp; i++)
+        {
+            result = result * base;
+        }
+        
+        যদি (exponent < 0)
+        {
+            ফেরত 1.0 / result;
+        }
+        বা
+        {
+            ফেরত result;
+        }
+    }
+    
+    /*
+     * Degrees to radians conversion
+     * Input: ভগ্নাংশ degrees
+     * Output: ভগ্নাংশ radian
+     * Computes: radians = degrees × (π/180)
+     */
+    ফাংশন ভগ্নাংশ degToRad(ভগ্নাংশ degrees)
+    {
+       ভগ্নাংশ degrees = ভগ্নাংশে(degrees);
+        ফেরত degrees * ক্লাসের (PI_OVER_180);
+    }
+    
+    /*
+     * Sine function using Taylor series
+     * Input: ভগ্নাংশ x (in radians)
+     * Output: ভগ্নাংশ
+     * Computes: sin(x) ≈ x - x³/3! + x⁵/5! - ... (10 terms)
+     * Range: Normalizes x to [-π, π] for better accuracy
+     */
+    ফাংশন ভগ্নাংশ sin(ভগ্নাংশ x)
+    {
+       ভগ্নাংশ x = ভগ্নাংশে(x);
+        x = x % (2 * ক্লাসের(PI)); 
+        
+        যদি (x > ক্লাসের(PI))
+        {
+            x = x - 2 * ক্লাসের(PI);
+        }
+        
+        যদি (x < -ক্লাসের(PI))
+        {
+            x = x + 2 * ক্লাসের(PI);
+        }
+        
+        ভগ্নাংশ result = 0.0;
+        পূর্ণসংখ্যা terms = 10;
+        পূর্ণসংখ্যা n;
+        
+        লুপ (n = 0; n < terms; n++)
+        {
+            ভগ্নাংশ term = ক্লাসের(intPower(-1, n)) * ক্লাসের(intPower(x, 2*n + 1)) / ক্লাসের(factorial(2*n + 1));
+            result = result + term;
+        }
+        
+        ফেরত result;
+    }
+    
+    /*
+     * Cosine function using Taylor series
+     * Input: ভগ্নাংশ x (in radians)
+     * Output: ভগ্নাংশ
+     * Computes: cos(x) ≈ 1 - x²/2! + x⁴/4! - ... (10 terms)
+     * Range: Normalizes x to [-π, π] for better accuracy
+     */
+    ফাংশন ভগ্নাংশ cos(ভগ্নাংশ x)
+    {
+       ভগ্নাংশ x = ভগ্নাংশে(x);
+        x = x % (2 * ক্লাসের(PI));
+        
+        যদি (x > ক্লাসের(PI))
+        {
+            x = x - 2 * ক্লাসের(PI);
+        }
+        
+        যদি (x < -ক্লাসের(PI))
+        {
+            x = x + 2 * ক্লাসের(PI);
+        }
+        
+        ভগ্নাংশ result = 0.0;
+        পূর্ণসংখ্যা terms = 10;
+        পূর্ণসংখ্যা n;
+        
+        লুপ (n = 0; n < terms; n++)
+        {
+            ভগ্নাংশ term = ক্লাসের(intPower(-1, n)) * ক্লাসের(intPower(x, 2*n)) / ক্লাসের(factorial(2*n));
+            result = result + term;
+        }
+        
+        ফেরত result;
+    }
+    
+    /*
+     * Tangent function
+     * Input: ভগ্নাংশ x (in radians)
+     * Output: ভগ্নাংশ
+     * Computes: tan(x) = sin(x)/cos(x)
+     * Throws: Error when cos(x) = 0 (undefined)
+     */
+    ফাংশন ভগ্নাংশ tan(ভগ্নাংশ x)
+    {
+       ভগ্নাংশ x = ভগ্নাংশে(x);
+         যদি (x == 0)
+        {
+            ফেরত 0;
+        }
+        ভগ্নাংশ cosine = ক্লাসের(cos(x));
+        
+        যদি (cosine == 0)
+        {
+            দেখা("Error: tan(x) undefined at x = " + x);
+            ফেরত 0;
+        }
+        বা
+        {
+            ফেরত ক্লাসের(sin(x)) / cosine;
+        }
+    }
+    
+    /*
+     * Natural logarithm function
+     * Input: ভগ্নাংশ x > 0
+     * Output: ভগ্নাংশ
+     * Computes: ln(x) using Taylor series approximation (20 terms)
+     * Throws: Error for x ≤ 0
+     */
+    ফাংশন ভগ্নাংশ ln(ভগ্নাংশ x)
+    {
+       ভগ্নাংশ x = ভগ্নাংশে(x);
+    
+        যদি (x <= 0)
+        {
+            দেখাও("Error: ln(x) undefined for x ≤ 0");
+            ফেরত 0;
+        }
+        
+        ভগ্নাংশ term = (x - 1) / (x + 1);
+        ভগ্নাংশ result = 0.0;
+        পূর্ণসংখ্যা terms = 20;
+        
+        লুপ (পূর্ণসংখ্যা n = 0; n < terms; n++)
+        {
+            ভগ্নাংশ k = 2 * n + 1;
+    
+            result = result + (1.0 / k) * ক্লাসের(intPower(term, k));
+        }
+        ফেরত 2 * result;
+    }
+    
+    /*
+     * Logarithm base 10 function
+     * Input: ভগ্নাংশ x > 0
+     * Output: ভগ্নাংশ
+     * Computes: log₁₀(x) = ln(x)/ln(10)
+     * Throws: Error for x ≤ 0
+     */
+    ফাংশন ভগ্নাংশ log10(ভগ্নাংশ x)
+    {
+       ভগ্নাংশ x = ভগ্নাংশে(x);
+        যদি (x <= 0)
+        {
+            দেখাও("Error: log10(x) undefined for x ≤ 0");
+            ফেরত 0;
+        }
+        
+        ভগ্নাংশ ln10 = 2.302585092994046;
+        ফেরত ক্লাসের(ln(x)) / ln10;
+    }
+    
+    /*
+     * Logarithm with custom base function
+     * Input: ভগ্নাংশ x > 0, ভগ্নাংশ base > 0, base ≠ 1
+     * Output: ভগ্নাংশ
+     * Computes: logₐ(x) = ln(x)/ln(a)
+     * Throws: Error for invalid inputs (x ≤ 0, base ≤ 0, or base = 1)
+     */
+    ফাংশন ভগ্নাংশ log(ভগ্নাংশ x, ভগ্নাংশ base)
+    {
+       ভগ্নাংশ x = ভগ্নাংশে(x);
+       ভগ্নাংশ base = ভগ্নাংশে(base);
+        যদি (x <= 0)
+        {
+            দেখাও("Error: log(x) undefined for x ≤ 0");
+            ফেরত 0;
+        }
+        
+        যদি (base <= 0)
+        {
+            দেখাও("Error: log(x) undefined for base ≤ 0");
+            ফেরত 0;
+        }
+        
+        যদি (base == 1)
+        {
+            দেখাও("Error: log(x) undefined for base = 1");
+            ফেরত 0;
+        }
+        
+        ফেরত ক্লাসের(ln(x)) / ক্লাসের(ln(base));
+    }
+    
+    /*
+     * Exponential function
+     * Input: ভগ্নাংশ x
+     * Output: ভগ্নাংশ
+     * Computes: e^x ≈ 1 + x + x²/2! + x³/3! + ... (20 terms)
+     */
+    ফাংশন ভগ্নাংশ exp(ভগ্নাংশ x)
+    {
+       ভগ্নাংশ x = ভগ্নাংশে (x);
+        ভগ্নাংশ result = 1.0;
+        পূর্ণসংখ্যা terms = 20;
+        পূর্ণসংখ্যা n;
+        
+        লুপ (n = 1; n <= terms; n++)
+        {
+            result = result + (ক্লাসের(intPower(x, n)) / ক্লাসের(factorial(n)));
+        }
+        
+        ফেরত result;
+    }
+    
+    /*
+     * Power function
+     * Input: ভগ্নাংশ base, ভগ্নাংশ exponent
+     * Output: ভগ্নাংশ
+     * Computes: base^exponent = e^(exponent × ln(base))
+     * Throws: Error for 0^y where y ≤ 0
+     */
+    /*
+     * Power function
+     * Input: ভগ্নাংশ base, ভগ্নাংশ exponent
+     * Output: ভগ্নাংশ
+     * Computes: base^exponent = e^(exponent × ln(base))
+     * Throws: Error for 0^y where y ≤ 0
+     */
+    ফাংশন ভগ্নাংশ pow(ভগ্নাংশ base, ভগ্নাংশ exponent)
+    {
+        ভগ্নাংশ exponentL = ভগ্নাংশে(exponent);
+      ভগ্নাংশ base = ভগ্নাংশে (base);
+    
+        যদি (base == 0)
+        {
+            যদি (exponentL <= 0.0)
+            {
+                দেখা("Error: 0^y undefined for y ≤ 0");
+                ফেরত 0.0;
+            }
+            বা
+            {
+                ফেরত 0.0;
+            }
+        }
+        
+        // Check if exponent is an integer and base is integer
+        যদি (ক্লাসের(floor(exponentL)) == exponentL) {
+        // Use integer power if exponent is integer
+    
+        ফেরত ক্লাসের(intPower(base, পূর্ণসংখ্যায়(exponentL)));
+    }
+        বা {
+            // Use general power function
+    
+            ফেরত ক্লাসের(exp(exponentL * ক্লাসের(ln(ভগ্নাংশে (base)))));
+    
+        }
+    }
+    
+    /*
+     * Nth root function
+     * Input: ভগ্নাংশ x, ভগ্নাংশ n ≠ 0
+     * Output: ভগ্নাংশ
+     * Computes: x^(1/n) using Newton-Raphson method
+     * Throws: Error for even root of negative number
+     */
+    ফাংশন ভগ্নাংশ nthRoot(ভগ্নাংশ x, ভগ্নাংশ n)
+    {
+        ভগ্নাংশ x = ভগ্নাংশে(x);
+        ভগ্নাংশ n = ভগ্নাংশে(n);
+    
+        যদি (n == 0)
+        {
+            দেখাও("Error: 0th root undefined");
+            ফেরত 0;
+        }
+        
+        যদি (x < 0 && n % 2 == 0)
+        {
+            দেখাও("Error: Even root of negative number");
+            ফেরত 0;
+        }
+        
+        যদি (x == 0)
+        {
+            ফেরত 0;
+        }
+        
+        ভগ্নাংশ guess = x / n;
+        ভগ্নাংশ prevGuess;
+        পূর্ণসংখ্যা iterations = 20;
+        পূর্ণসংখ্যা i = 0;
+        
+        লুপ (;i < iterations; i++)
+        {
+            prevGuess = guess;
+            guess = ((n - 1) * guess + x / ক্লাসের(intPower(guess, n - 1))) / n;
+            
+            যদি (ক্লাসের(abs(guess - prevGuess)) < 0.0000000001)
+            {
+                ভাঙ;
+            }
+        }
+        
+        ফেরত guess;
+    }
+    
+    /*
+     * Function to convert Double to Int
+     * Input: ভগ্নাংশ x
+     * Output: পূর্ণসংখ্যা
+     */
+    ফাংশন পূর্ণসংখ্যা doubleToInt(ভগ্নাংশ d)
+    {
+            পূর্ণসংখ্যা temp = d;
+            ফেরত temp;
+    }
+    
+    /*
+     * Square root function using Newton-Raphson method
+     * Input: ভগ্নাংশ x ≥ 0
+     * Output: ভগ্নাংশ
+     */
+    ফাংশন ভগ্নাংশ sqrt(ভগ্নাংশ x)
+    {
+       ভগ্নাংশ x = ভগ্নাংশে(x);
+        যদি (x < 0)
+        {
+            দেখাও("Error: sqrt(x) undefined for x < 0");
+            ফেরত 0;
+        }
+        
+        যদি (x == 0)
+        {
+            ফেরত 0;
+        }
+        // Handle numbers ≥ 1e100 specially
+        ভগ্নাংশ scaleFactor = 1;
+        লুপ (x > 100000000000000000000000000000000000000000000000000)
+        {
+            x = x / 100000000000000000000000000000000; // Divide by 1e32
+            scaleFactor = scaleFactor * 100000000000000; // Multiply by 1e14 (since sqrt(1e32)=1e16)
+        }
+        
+        ভগ্নাংশ guess = x / 2;
+        ভগ্নাংশ prevGuess;
+        ভগ্নাংশ tolerance = 0.000000000000001;
+        পূর্ণসংখ্যা maxIter = 200;
+        পূর্ণসংখ্যা iter = 0;
+        
+        লুপ (iter < maxIter)
+        {
+            prevGuess = guess;
+            guess = (x / guess + guess) / 2;
+            যদি (ক্লাসের(abs(guess - prevGuess)) < tolerance)
+            {
+                ভাঙ;
+            }
+            iter = iter + 1;
+        }
+        
+        ফেরত guess * scaleFactor;
+    }
+    
+    /*
+     * Cube root function using Newton-Raphson method
+     * Input: ভগ্নাংশ x
+     * Output: ভগ্নাংশ
+     */
+    ফাংশন ভগ্নাংশ cbrt(ভগ্নাংশ x)
+    {
+       ভগ্নাংশ x = ভগ্নাংশে(x);
+        যদি (x == 0)
+        {
+            ফেরত 0;
+        }
+        ভগ্নাংশ sign = 1;
+        যদি (x < 0)
+        {
+            sign = -1;
+            x = -x;
+        }
+        
+        // Initial guess - better for large numbers
+        ভগ্নাংশ guess = x;
+        পূর্ণসংখ্যা count = 0;
+        
+        // Scale down for very large numbers
+        লুপ (guess > 1000000000000000000000000000000 && count < 100)
+        {
+            guess = guess / 1000000000000;
+            count = count + 1;
+        }
+        
+        guess = guess / 3;
+        
+        // Newton-Raphson iterations
+        ভগ্নাংশ prevGuess;
+        ভগ্নাংশ tolerance = 0.000000000000000000000000000001;
+        পূর্ণসংখ্যা maxIter = 200;
+        পূর্ণসংখ্যা iter = 0;
+        
+        লুপ (iter < maxIter)
+        {
+            prevGuess = guess;
+            ভগ্নাংশ guessSq = guess * guess;
+            guess = (x / guessSq + 2 * guess) / 3;
+            
+            // Check if difference is small enough
+            যদি (ক্লাসের(abs(guess - prevGuess)) < tolerance)
+            {
+                ভাঙ;
+            }
+            iter = iter + 1;
+        }
+        
+        // Scale back up if we scaled down
+        লুপ (count > 0)
+        {
+            guess = guess * 1000000;
+            count = count - 1;
+        }
+        
+        ফেরত sign * guess;
+    }
+    
+    /*
+     * Floor function
+     * Input: ভগ্নাংশ x
+     * Output: ভগ্নাংশ
+     * Computes: The largest integer less than or equal to x
+     */
+    ফাংশন ভগ্নাংশ floor(ভগ্নাংশ x)
+    {
+        ভগ্নাংশ x = ভগ্নাংশে(x);
+        যদি (x == 0) {
+            ফেরত 0;
+        }
+        
+        যদি (x > 0) {
+            ভগ্নাংশ n = 0;
+            লুপ (n <= x) {
+                n = n + 1;
+            }
+            ফেরত n - 1;
+        }
+        বা {
+            ভগ্নাংশ n = 0;
+            লুপ (n > x) {
+                n = n - 1;
+            }
+            ফেরত n;
+        }
+    }
+    
+    ফাংশন পূর্ণসংখ্যা gcd(পূর্ণসংখ্যা a, পূর্ণসংখ্যা b)
+    {
+        লুপ (b != 0)
+        {
+            পূর্ণসংখ্যা temp = b;
+            b = a % b;
+            a = temp;
+        }
+        ফেরত a;
+    }
+    
+    ফাংশন পূর্ণসংখ্যা lcm(পূর্ণসংখ্যা a, পূর্ণসংখ্যা b)
+    {
+        ফেরত (a * b) / ক্লাসের(gcd(a, b));
+    }
+
+}
