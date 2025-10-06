@@ -23,6 +23,11 @@ class LanguageTranslator
     static
     {
         // BN -> BN
+        banglaToBangla.put("ক্লাস", "ক্লাস");
+        banglaToBangla.put("ক্লাসের", "ক্লাসের");
+        banglaToBangla.put("বের", "বের");
+        banglaToBangla.put("সব", "সব");
+        banglaToBangla.put("অবজেক্ট", "অবজেক্ট");
         banglaToBangla.put("আকার_বাড়াও", "আকার_বাড়াও");
         banglaToBangla.put("দেখা", "দেখা");
         banglaToBangla.put("দেখাও", "দেখাও");
@@ -111,6 +116,12 @@ class LanguageTranslator
         banglaToBangla.put("⁮", ""); // U+206E - NATIONAL DIGIT SHAPES
         banglaToBangla.put("⁯", ""); // U+206F - NOMINAL DIGIT SHAPES
         // EN -> BN
+        englishToBangla.put("class", "ক্লাস");
+        englishToBangla.put("this", "ক্লাসের");
+        englishToBangla.put("each", "বের");
+        englishToBangla.put("var", "সব");
+        englishToBangla.put("object", "অবজেক্ট");
+        englishToBangla.put("type", "ধরণ");
         englishToBangla.put("increase_size", "আকার_বাড়াও");
         englishToBangla.put("resize_array", "আকার_বাড়াও");
         englishToBangla.put("gotoStart", "শুরুতে_যাও");
