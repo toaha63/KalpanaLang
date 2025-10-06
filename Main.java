@@ -1984,49 +1984,60 @@ class Parser
         return new ArrayStmt(name, type.type, size, initialValues);
     }
 
-private Stmt varDeclaration()
-{
-    // Check for access modifiers in global scope (should not be allowed)
-    if (match(TokenType.PRIVATE, TokenType.PUBLIC))
+    private Stmt varDeclaration()
     {
-        throw new RuntimeException("Access modifiers can only be used inside classes");
-    }
-
-    Token type = previous();
-    Token name = consume(TokenType.IDENTIFIER, "Expect variable name");
-    name.type = type.type;
-    
-    Expr initializer = null;
-    if (match(TokenType.ASSIGN))
-    {
-        if (match(TokenType.AT_SYMBOL))
+        // Check for access modifiers in global scope (should not be allowed)
+        if (match(TokenType.PRIVATE, TokenType.PUBLIC))
         {
-            // Handle object creation
-            Token classRef = consume(TokenType.IDENTIFIER, "Expect class name after '@'");
-            
-            List<Expr> arguments = new Vector<>();
-            if (match(TokenType.LEFT_PAREN))
-            {
-                if (!check(TokenType.RIGHT_PAREN))
-                {
-                    do
-                    {
-                        arguments.add(expression());
-                    } while (match(TokenType.COMMA));
-                }
-                consume(TokenType.RIGHT_PAREN, "Expect ')' after constructor arguments");
-            }
-            
-            initializer = new ObjectExpr(classRef, arguments);
-        } else
-        {
-            initializer = expression();
+            throw new RuntimeException("Access modifiers can only be used inside classes");
         }
-    }
     
-    consume(TokenType.SEMICOLON, "Expect ';' after variable declaration");
-    return new Var(name, initializer);
-}
+        Token type = previous();
+        Token name = consume(TokenType.IDENTIFIER, "Expect variable name");
+        name.type = type.type;
+        
+        Expr initializer = null;
+        if (match(TokenType.ASSIGN))
+        {
+            if (match(TokenType.AT_SYMBOL))
+            {
+                // Handle object creation: অবজেক্ট t = @className or অবজেক্ট t = @className(args);
+                Token classRef = consume(TokenType.IDENTIFIER, "Expect class name after '@'");
+                
+                List<Expr> arguments = new Vector<>();
+                // Check for constructor arguments
+                if (match(TokenType.LEFT_PAREN))
+                {
+                    if (!check(TokenType.RIGHT_PAREN))
+                    {
+                        do
+                        {
+                            arguments.add(expression());
+                        } while (match(TokenType.COMMA));
+                    }
+                    consume(TokenType.RIGHT_PAREN, "Expect ')' after constructor arguments");
+                }
+                
+                initializer = new ObjectExpr(classRef, arguments);
+            } else
+            {
+                initializer = expression();
+            }
+        }
+        else
+        {
+            // No initializer provided - set default value based on type
+            if (type.type == TokenType.OBJECT)
+            {
+                // For objects, set default to null
+                initializer = new Literal(null);
+            }
+            // For other types, the existing logic in visitVarStmt will handle defaults
+        }
+        
+        consume(TokenType.SEMICOLON, "Expect ';' after variable declaration");
+        return new Var(name, initializer);
+    }
 
     private Stmt inputStatement()
     {
@@ -2344,15 +2355,22 @@ private Stmt varDeclaration()
     private Expr assignment()
     {
         Expr expr = or();
-    
+        
         if (match(TokenType.ASSIGN))
         {
             Token equals = previous();
             Expr value = assignment();
-    
+            
             if (expr instanceof Variable)
             {
                 Token name = ((Variable)expr).name();
+                
+                // Handle object assignment: o = @NewClass;
+                if (value instanceof ObjectExpr)
+                {
+                    return new Binary(expr, equals, value);
+                }
+                
                 return new Binary(expr, equals, value);
             } 
             else if (expr instanceof ArrayAccess)
@@ -2372,10 +2390,10 @@ private Stmt varDeclaration()
                 ClassSelfExpr selfExpr = (ClassSelfExpr)expr;
                 return new ClassSelfAssignment(selfExpr.keyword(), value);
             }
-    
+            
             throw new RuntimeException("Invalid assignment target.");
         }
-    
+        
         return expr;
     }
 
@@ -2573,6 +2591,10 @@ private Stmt varDeclaration()
         } else if (match(TokenType.OBJECT))
         {
             expr = objectCreation();
+        }
+        else if (match(TokenType.AT_SYMBOL))
+        {
+            expr = objectCreation();
         } else if (match(TokenType.GO_TO_START))
         {
             expr = goToStartCall();
@@ -2698,7 +2720,13 @@ private Stmt varDeclaration()
 
     private Expr objectCreation()
     {
-        consume(TokenType.AT_SYMBOL, "Expect '@' before class name");
+        // If we're coming from AT_SYMBOL case, we already consumed '@'
+        // If we're coming from OBJECT case, we need to consume '@'
+        if (previous().type != TokenType.AT_SYMBOL)
+        {
+            consume(TokenType.AT_SYMBOL, "Expect '@' before class name");
+        }
+        
         Token classRef = consume(TokenType.IDENTIFIER, "Expect class name after '@'");
         
         List<Expr> arguments = new Vector<>();
@@ -3448,11 +3476,15 @@ class ClassInstance
 {
     private final ClassDefinition klass;
     private final Map<String, Object> fields;
+    private final long creationTimeNanos;
+    private final String creationTimestamp;
     
     public ClassInstance(ClassDefinition klass, Map<String, Object> initialFieldValues)
     {
         this.klass = klass;
         this.fields = new LinkedHashMap<>();
+        this.creationTimeNanos = System.nanoTime();
+        this.creationTimestamp = formatCreationTime();
         
         // Initialize fields with values from class definition
         for (Map.Entry<String, TokenType> fieldEntry : klass.fieldTypes.entrySet())
@@ -3470,6 +3502,135 @@ class ClassInstance
             {
                 fields.put(fieldName, getDefaultValue(fieldType));
             }
+        }
+    }
+    
+    private String formatCreationTime()
+    {
+        Instant now = Instant.now();
+        LocalDateTime dateTime = LocalDateTime.ofInstant(now, ZoneId.systemDefault());
+        
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm:ss");
+        String timePart = dateTime.format(formatter);
+        
+        int nanoseconds = now.getNano();
+        String nanoPart = String.format("%09d", nanoseconds);
+        
+        return timePart + "." + nanoPart;
+    }
+    
+    public boolean isAlive()
+    {
+        return true; // Since we're referencing it, it's alive
+    }
+    
+    public long getAgeInNanoseconds()
+    {
+        return System.nanoTime() - creationTimeNanos;
+    }
+    
+    public String getAgeReadable()
+    {
+        long ageNanos = getAgeInNanoseconds();
+        
+        if (ageNanos < 1_000)
+        {
+            return ageNanos + " nanoseconds";
+        }
+        else if (ageNanos < 1_000_000)
+        {
+            return (ageNanos / 1_000) + " microseconds";
+        }
+        else if (ageNanos < 1_000_000_000)
+        {
+            return (ageNanos / 1_000_000) + " milliseconds";
+        }
+        else
+        {
+            double seconds = ageNanos / 1_000_000_000.0;
+            return String.format("%.3f seconds", seconds);
+        }
+    }
+    
+    private long estimateMemoryUsage()
+    {
+        long size = 0;
+        
+        // Estimate memory for each field
+        for (Map.Entry<String, Object> entry : fields.entrySet())
+        {
+            // Field name overhead
+            size += entry.getKey().length() * 2L;
+            
+            Object value = entry.getValue();
+            if (value instanceof String)
+            {
+                size += ((String)value).length() * 2L + 16; // String overhead
+            }
+            else if (value instanceof BigDecimal)
+            {
+                size += 32; // BigDecimal size
+            }
+            else if (value instanceof Boolean)
+            {
+                size += 16; // Boolean object size
+            }
+            else if (value instanceof Object[])
+            {
+                Object[] array = (Object[])value;
+                size += 16; // Array header
+                for (Object element : array)
+                {
+                    if (element instanceof String)
+                    {
+                        size += ((String)element).length() * 2L + 16;
+                    }
+                    else if (element instanceof BigDecimal)
+                    {
+                        size += 32;
+                    }
+                    else if (element instanceof Boolean)
+                    {
+                        size += 16;
+                    }
+                    else
+                    {
+                        size += 16; // Default object size
+                    }
+                }
+            }
+            else if (value == null)
+            {
+                size += 8; // Null reference
+            }
+            else
+            {
+                size += 16; // Default object size
+            }
+        }
+        
+        // Add class definition overhead
+        size += 64; // ClassInstance base overhead
+        size += klass.name.length() * 2L; // Class name
+        
+        return Math.max(16, size); // Minimum object size
+    }
+    
+    private String formatMemory(long bytes)
+    {
+        if (bytes < 1024)
+        {
+            return bytes + " bytes";
+        }
+        else if (bytes < 1024 * 1024)
+        {
+            double kb = bytes / 1024.0;
+            return String.format("%.1f KB", kb);
+        }
+        else
+        {
+            double mb = bytes / (1024.0 * 1024.0);
+            return String.format("%.1f MB", mb);
         }
     }
     
@@ -3648,7 +3809,15 @@ class ClassInstance
     @Override
     public String toString()
     {
-        return klass.name + " instance";
+        String status = isAlive() ? "active" : "inactive";
+        String age = getAgeReadable();
+        long memoryBytes = estimateMemoryUsage();
+        String memory = formatMemory(memoryBytes);
+        
+        return klass.name + " object [created: " + creationTimestamp + 
+               ", age: " + age + 
+               ", status: " + status + 
+               ", memory: " + memory + "]";
     }
 }
 
@@ -6342,8 +6511,8 @@ class Interpreter implements ExprVisitor<Object>, StmtVisitor<Void>
                 throw new RuntimeException("Boolean variable can only be assigned true/false or numbers");
             }
         }
-    
-        // Set default values if no initializer
+        
+        // Set default values if no initializer or initializer is null
         if (value == null)
         {
             if (stmt.name().type == TokenType.INTEGER)
@@ -6358,12 +6527,15 @@ class Interpreter implements ExprVisitor<Object>, StmtVisitor<Void>
             } else if (stmt.name().type == TokenType.BOOLEAN)
             {
                 value = false;
-            }else if (stmt.name().type == TokenType.ALL)
+            } else if (stmt.name().type == TokenType.OBJECT)
+            {
+                value = null; // Objects default to null
+            } else if (stmt.name().type == TokenType.ALL)
             {
                 value = null; // ALL type can be null by default
             }
         }
-    
+        
         // Store the variable and its type
         environment.define(stmt.name().lexeme, value);
         environment.defineVariableType(stmt.name().lexeme, stmt.name().type);
@@ -6571,12 +6743,14 @@ class Interpreter implements ExprVisitor<Object>, StmtVisitor<Void>
     public Object visitArraySizeExpr(ArraySize expr)
     {
         Object array = evaluate(expr.array());
-
+    
         if (array instanceof Object[])
         {
-            return ((Object[])array).length;
+            int size = ((Object[])array).length;
+            // Return as BigDecimal to match your number system, or as Integer
+            return new BigDecimal(size);
         }
-
+    
         throw new RuntimeException("Operand must be an array");
     }
     @Override
@@ -6707,6 +6881,32 @@ class Interpreter implements ExprVisitor<Object>, StmtVisitor<Void>
     {
         Object left = evaluate(expr.left());
         Object right = evaluate(expr.right());
+
+        // Handle object assignment: o = @NewClass
+        if (expr.operator().type == TokenType.ASSIGN && expr.left() instanceof Variable)
+        {
+            Token name = ((Variable)expr.left()).name();
+            
+            // TYPE CHECKING FOR REASSIGNMENT
+            TokenType variableType = environment.getVariableType(name.lexeme);
+            if (variableType == null)
+            {
+                throw new RuntimeException("Undefined variable '" + name.lexeme + "'");
+            }
+            
+            // For object assignment, allow any object assignment
+            if (variableType == TokenType.OBJECT)
+            {
+                environment.assign(name, right);
+                return right;
+            }
+            
+            // For other types, using existing conversion logic.
+            Object convertedValue = convertToExpectedType(right, variableType);
+            environment.assign(name, convertedValue);
+            return convertedValue;
+        }
+    
         if (left instanceof Integer) left = new BigDecimal((Integer)left);
         if (right instanceof Integer) right = new BigDecimal((Integer)right);
         if (left instanceof Double) left = BigDecimal.valueOf((Double)left);
@@ -8199,4 +8399,3 @@ public class Main
 //Jar make: jar --create -e Main --file KalpanaLang.jar *.class && jarsigner -keystore kalpanaKeystore.jks -storepass ,aajja000 -keypass ,aajja000 KalpanaLang.jar kalpanaKey
 
 //Run: clear&&mkdir -p temp && cp Main.java temp/ && cd temp &&TIMESTAMP=$(date | awk '{split($4, t, ":");h = $4 + 0; ap = (h >= 12) ? "PM" : "AM"; h12 = (h > 12) ? h - 12 : h;h12 = (h12 == 0) ? 1lexer.scanTokens2 : h12;month_num =(index("JanFebMarAprMayJunJulAugSepOctNovDec", $2)+ 2) / 3;printf "%02d.%02d.%s, %02d:%s:%s %s (GMT %s)", $3, month_num, $6, h12, t[2], t[3], ap, $5}') && sed -i "s|__COMPILE_TIMESTAMP__|\"$TIMESTAMP\"|" Main.java && javac -d .. Main.java && cd .. && rm -rf temp     
-//Stable. Next is trying to add random() class library.
