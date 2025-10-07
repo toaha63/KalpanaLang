@@ -510,6 +510,7 @@ class LanguageTranslator
     private static String processDollarDefines(String code)
     {
         Map<String, String> dollarDefines = new LinkedHashMap<>();
+        Map<String, MacroDefinition> macroDefines = new LinkedHashMap<>();
         StringBuilder result = new StringBuilder();
         String[] lines = code.split("\\r?\\n");
         
@@ -517,7 +518,7 @@ class LanguageTranslator
         {
             String trimmedLine = line.trim();
             
-            // Check for $ variable definition (but not $function variants)
+            // Check for $ definitions (but not $function variants)
             if (trimmedLine.startsWith("$") && 
                 !trimmedLine.startsWith("$ফাংশন") && 
                 !trimmedLine.startsWith("$function") && 
@@ -532,6 +533,64 @@ class LanguageTranslator
                     continue;
                 }
                 
+                // Check if this is a function-like macro (has parentheses)
+                if (defineLine.contains("(") && defineLine.contains(")"))
+                {
+                    // Parse function-like macro
+                    int parenStart = defineLine.indexOf('(');
+                    int parenEnd = defineLine.indexOf(')', parenStart);
+                    
+                    if (parenStart != -1 && parenEnd != -1 && parenStart < parenEnd)
+                    {
+                        // Extract macro name
+                        String macroName = defineLine.substring(0, parenStart).trim();
+                        
+                        // Simple identifier validation
+                        boolean validIdentifier = !macroName.isEmpty();
+                        char firstChar = macroName.charAt(0);
+                        validIdentifier = validIdentifier && (Character.isLetter(firstChar) || firstChar == '_' || 
+                            Character.UnicodeBlock.of(firstChar).equals(Character.UnicodeBlock.BENGALI));
+                        
+                        for (int i = 1; i < macroName.length() && validIdentifier; i++)
+                        {
+                            char c = macroName.charAt(i);
+                            if (!Character.isLetterOrDigit(c) && c != '_' && 
+                                !Character.UnicodeBlock.of(c).equals(Character.UnicodeBlock.BENGALI))
+                            {
+                                validIdentifier = false;
+                            }
+                        }
+                        
+                        if (validIdentifier)
+                        {
+                            // Extract parameters
+                            String paramsStr = defineLine.substring(parenStart + 1, parenEnd).trim();
+                            List<String> parameters = new Vector<>();
+                            
+                            if (!paramsStr.isEmpty())
+                            {
+                                String[] paramArray = paramsStr.split("\\s*,\\s*");
+                                for (String param : paramArray)
+                                {
+                                    param = param.trim();
+                                    if (!param.isEmpty())
+                                    {
+                                        parameters.add(param);
+                                    }
+                                }
+                            }
+                            
+                            // Extract macro body
+                            String body = defineLine.substring(parenEnd + 1).trim();
+                            
+                            // Store macro definition
+                            macroDefines.put(macroName, new MacroDefinition(macroName, parameters, body));
+                            continue;
+                        }
+                    }
+                }
+                
+                // Handle simple variable definition (your existing code)
                 String[] parts = defineLine.split("\\s+", 2);
                 
                 if (parts.length >= 1)
@@ -578,12 +637,69 @@ class LanguageTranslator
             
             String processedLine = line;
             
+            // First process function-like macros
+            for (Map.Entry<String, MacroDefinition> entry : macroDefines.entrySet())
+            {
+                String macroName = entry.getKey();
+                MacroDefinition macro = entry.getValue();
+                
+                // Pattern to match macro calls: MACRO_NAME(arguments)
+                String pattern = "\\b" + Pattern.quote(macroName) + "\\s*\\(";
+                Pattern macroPattern = Pattern.compile(pattern);
+                Matcher matcher = macroPattern.matcher(processedLine);
+                
+                StringBuffer lineBuffer = new StringBuffer();
+                
+                while (matcher.find())
+                {
+                    int macroStart = matcher.start();
+                    int parenStart = matcher.end() - 1; // Position of '('
+                    
+                    // Find matching closing parenthesis
+                    int parenEnd = findMatchingParen(processedLine, parenStart);
+                    if (parenEnd == -1)
+                    {
+                        // No matching closing paren, skip
+                        matcher.appendReplacement(lineBuffer, matcher.group());
+                        continue;
+                    }
+                    
+                    // Extract arguments
+                    String argsStr = processedLine.substring(parenStart + 1, parenEnd).trim();
+                    List<String> arguments = parseMacroArguments(argsStr);
+                    
+                    // Validate argument count
+                    if (arguments.size() != macro.parameters.size())
+                    {
+                        // Argument count mismatch, skip expansion
+                        matcher.appendReplacement(lineBuffer, matcher.group());
+                        continue;
+                    }
+                    
+                    // Perform macro expansion
+                    String expansion = expandMacro(macro, arguments);
+                    
+                    // Replace the macro call with expansion
+                    String beforeMacro = processedLine.substring(0, macroStart);
+                    String afterMacro = processedLine.substring(parenEnd + 1);
+                    processedLine = beforeMacro + expansion + afterMacro;
+                    
+                    // Reset matcher for the modified line
+                    matcher = macroPattern.matcher(processedLine);
+                    lineBuffer = new StringBuffer();
+                }
+                
+                matcher.appendTail(lineBuffer);
+                processedLine = lineBuffer.toString();
+            }
+            
+            // Then process simple defines (your existing replacement logic)
             for (Map.Entry<String, String> entry : dollarDefines.entrySet())
             {
                 String identifier = entry.getKey();
                 String value = entry.getValue();
                 
-                // Manual word boundary replacement without regex
+                // Manual word boundary replacement without regex (your existing code)
                 StringBuilder lineBuilder = new StringBuilder();
                 int lastIndex = 0;
                 int identifierLen = identifier.length();
@@ -622,6 +738,146 @@ class LanguageTranslator
         }
         
         return result.toString();
+    }
+    
+    // Helper methods needed for macro functionality
+    private static int findMatchingParen(String str, int startPos)
+    {
+        int depth = 1;
+        for (int i = startPos + 1; i < str.length(); i++)
+        {
+            char c = str.charAt(i);
+            if (c == '(') depth++;
+            else if (c == ')') depth--;
+            
+            if (depth == 0) return i;
+        }
+        return -1; // No matching closing paren found
+    }
+    
+    private static List<String> parseMacroArguments(String argsStr)
+    {
+        List<String> arguments = new Vector<>();
+        if (argsStr.isEmpty()) return arguments;
+        
+        StringBuilder currentArg = new StringBuilder();
+        int parenDepth = 0;
+        boolean inString = false;
+        char stringChar = '\0';
+        
+        for (int i = 0; i < argsStr.length(); i++)
+        {
+            char c = argsStr.charAt(i);
+            
+            if (!inString)
+            {
+                if (c == '"' || c == '\'')
+                {
+                    inString = true;
+                    stringChar = c;
+                    currentArg.append(c);
+                }
+                else if (c == '(')
+                {
+                    parenDepth++;
+                    currentArg.append(c);
+                }
+                else if (c == ')')
+                {
+                    parenDepth--;
+                    currentArg.append(c);
+                }
+                else if (c == ',' && parenDepth == 0)
+                {
+                    arguments.add(currentArg.toString().trim());
+                    currentArg = new StringBuilder();
+                }
+                else
+                {
+                    currentArg.append(c);
+                }
+            }
+            else
+            {
+                // Inside string literal
+                currentArg.append(c);
+                if (c == stringChar && (i == 0 || argsStr.charAt(i - 1) != '\\'))
+                {
+                    inString = false;
+                }
+            }
+        }
+        
+        // Add the last argument
+        if (currentArg.length() > 0)
+        {
+            arguments.add(currentArg.toString().trim());
+        }
+        
+        return arguments;
+    }
+    
+    private static String expandMacro(MacroDefinition macro, List<String> arguments)
+    {
+        String expansion = macro.body;
+        
+        // Replace each parameter with its corresponding argument
+        for (int i = 0; i < macro.parameters.size(); i++)
+        {
+            String param = macro.parameters.get(i);
+            String arg = arguments.get(i);
+            
+            // Use word boundaries to avoid partial replacements
+            StringBuilder expanded = new StringBuilder();
+            int lastIndex = 0;
+            int paramLen = param.length();
+            
+            while (lastIndex < expansion.length())
+            {
+                int index = expansion.indexOf(param, lastIndex);
+                
+                if (index == -1)
+                {
+                    expanded.append(expansion.substring(lastIndex));
+                    break;
+                }
+                
+                boolean leftBoundary = (index == 0) || !Character.isLetterOrDigit(expansion.charAt(index - 1));
+                boolean rightBoundary = (index + paramLen >= expansion.length()) || 
+                                       !Character.isLetterOrDigit(expansion.charAt(index + paramLen));
+                
+                if (leftBoundary && rightBoundary)
+                {
+                    expanded.append(expansion.substring(lastIndex, index));
+                    expanded.append(arg);
+                    lastIndex = index + paramLen;
+                }
+                else
+                {
+                    expanded.append(expansion.substring(lastIndex, index + paramLen));
+                    lastIndex = index + paramLen;
+                }
+            }
+            
+            expansion = expanded.toString();
+        }
+        
+        return expansion;
+    }
+    
+    // Inner class for macro definitions
+    static class MacroDefinition
+    {
+        String name;
+        List<String> parameters;
+        String body;
+        
+        MacroDefinition(String name, List<String> parameters, String body)
+        {
+            this.name = name;
+            this.parameters = parameters;
+            this.body = body;
+        }
     }
 }
 enum FileOperation
@@ -2899,7 +3155,7 @@ class Parser
         
         return new ObjectExpr(classRef, arguments);
     }
-        // Add this method to handle dot expressions after primary expressions
+        // Method to handle dot expressions after primary expressions
         private Expr finishPrimary(Expr expr)
         {
             while (true)
@@ -3326,7 +3582,7 @@ class Environment
         variableTypes.put(name, type);
     }
 
-    // Add this method to get variable type
+    //  method to get variable type
     TokenType getVariableType(String name)
     {
         if (variableTypes.containsKey(name))
@@ -3337,7 +3593,7 @@ class Environment
         return null;
     }
 
-    // Add this method to delete variable type
+    //  method to delete variable type
     void deleteVariableType(String name)
     {
         variableTypes.remove(name);
@@ -8650,8 +8906,3 @@ public class Main
         interpreter.interpret(statements);
     }
 }
-//Package make: jpackage --type app-image -n KalpanaLang  --input "/storage/F717-19EC/InterpreterBackup" --main-jar KalpanaLang.jar --main-class Main  --runtime-image /data/data/com.termux/files/usr/lib/jvm/java-21-openjdk/  --dest ~
-
-//Jar make: jar --create -e Main --file KalpanaLang.jar *.class && jarsigner -keystore kalpanaKeystore.jks -storepass ,aajja000 -keypass ,aajja000 KalpanaLang.jar kalpanaKey
-
-//Run: clear&&mkdir -p temp && cp Main.java temp/ && cd temp &&TIMESTAMP=$(date | awk '{split($4, t, ":");h = $4 + 0; ap = (h >= 12) ? "PM" : "AM"; h12 = (h > 12) ? h - 12 : h;h12 = (h12 == 0) ? 1lexer.scanTokens2 : h12;month_num =(index("JanFebMarAprMayJunJulAugSepOctNovDec", $2)+ 2) / 3;printf "%02d.%02d.%s, %02d:%s:%s %s (GMT %s)", $3, month_num, $6, h12, t[2], t[3], ap, $5}') && sed -i "s|__COMPILE_TIMESTAMP__|\"$TIMESTAMP\"|" Main.java && javac -d .. Main.java && cd .. && rm -rf temp     
