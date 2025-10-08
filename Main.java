@@ -122,6 +122,7 @@ class LanguageTranslator
         englishToBangla.put("var", "সব");
         englishToBangla.put("object", "অবজেক্ট");
         englishToBangla.put("type", "ধরণ");
+        englishToBangla.put("array_generator", "অ্যারে_জেনারেটর");
         englishToBangla.put("increase_size", "আকার_বাড়াও");
         englishToBangla.put("resize_array", "আকার_বাড়াও");
         englishToBangla.put("gotoStart", "শুরুতে_যাও");
@@ -4021,7 +4022,6 @@ class ClassInstance
             }
         }
         
-        // Add class definition overhead
         size += 64; // ClassInstance base overhead
         size += klass.name.length() * 2L; // Class name
         
@@ -5164,163 +5164,193 @@ class Interpreter implements ExprVisitor<Object>, StmtVisitor<Void>
         return null;
     }
 
-    @Override
-    public Void visitClassStmt(ClassStmt stmt)
+@Override
+public Void visitClassStmt(ClassStmt stmt)
+{
+    Map<String, Function> methods = new LinkedHashMap<>();
+    Map<String, Boolean> methodAccess = new LinkedHashMap<>();
+    Map<String, TokenType> fieldTypes = new LinkedHashMap<>();
+    Map<String, Boolean> fieldAccess = new LinkedHashMap<>();
+    Map<String, Object> initialFieldValues = new LinkedHashMap<>();
+    
+    // Extract methods and fields from class members with access modifiers
+    for (Stmt member : stmt.members())
     {
-        Map<String, Function> methods = new LinkedHashMap<>();
-        Map<String, Boolean> methodAccess = new LinkedHashMap<>();
-        Map<String, TokenType> fieldTypes = new LinkedHashMap<>();
-        Map<String, Boolean> fieldAccess = new LinkedHashMap<>();
-        Map<String, Object> initialFieldValues = new LinkedHashMap<>();
-        
-        // Extract methods and fields from class members with access modifiers
-        for (Stmt member : stmt.members())
+        if (member instanceof FunctionWithAccess)
         {
-            if (member instanceof FunctionWithAccess)
+            FunctionWithAccess func = (FunctionWithAccess) member;
+            methods.put(func.name().lexeme, new Function(func.name(), func.returnType(), 
+                                                       func.parameters(), func.body(), 
+                                                       func.isTemporary(), func.environment()));
+            methodAccess.put(func.name().lexeme, func.isPublic());
+        } 
+        else if (member instanceof Function)
+        {
+            // Handle functions without explicit access modifier (default to public)
+            Function func = (Function) member;
+            methods.put(func.name().lexeme, func);
+            methodAccess.put(func.name().lexeme, true);
+        }
+        else if (member instanceof VarWithAccess)
+        {
+            VarWithAccess var = (VarWithAccess) member;
+            String fieldName = var.name().lexeme;
+            TokenType fieldType = var.name().type;
+            fieldTypes.put(fieldName, fieldType);
+            fieldAccess.put(fieldName, var.isPublic());
+            
+            // Evaluate and store the initial value if provided
+            if (var.initializer() != null)
             {
-                FunctionWithAccess func = (FunctionWithAccess) member;
-                methods.put(func.name().lexeme, new Function(func.name(), func.returnType(), 
-                                                           func.parameters(), func.body(), 
-                                                           func.isTemporary(), func.environment()));
-                methodAccess.put(func.name().lexeme, func.isPublic());
+                try
+                {
+                    Object initialValue = evaluate(var.initializer());
+                    initialFieldValues.put(fieldName, initialValue);
+                } 
+                catch (Exception e)
+                {
+                    System.err.println("Warning: Could not evaluate initial value for field '" + 
+                                     fieldName + "': " + e.getMessage());
+                    initialFieldValues.put(fieldName, getDefaultValueForType(fieldType));
+                }
             } 
-            else if (member instanceof Function)
+            else
             {
-                // Handle functions without explicit access modifier (default to public)
-                Function func = (Function) member;
-                methods.put(func.name().lexeme, func);
-                methodAccess.put(func.name().lexeme, true);
-            }
-            else if (member instanceof VarWithAccess)
-            {
-                VarWithAccess var = (VarWithAccess) member;
-                String fieldName = var.name().lexeme;
-                TokenType fieldType = var.name().type;
-                fieldTypes.put(fieldName, fieldType);
-                fieldAccess.put(fieldName, var.isPublic());
-                
-                // Evaluate and store the initial value if provided
-                if (var.initializer() != null)
-                {
-                    try
-                    {
-                        Object initialValue = evaluate(var.initializer());
-                        initialFieldValues.put(fieldName, initialValue);
-                    } 
-                    catch (Exception e)
-                    {
-                        System.err.println("Warning: Could not evaluate initial value for field '" + 
-                                         fieldName + "': " + e.getMessage());
-                        initialFieldValues.put(fieldName, getDefaultValueForType(fieldType));
-                    }
-                } 
-                else
-                {
-                    initialFieldValues.put(fieldName, getDefaultValueForType(fieldType));
-                }
-            }
-            else if (member instanceof ArrayStmtWithAccess)
-            {
-                ArrayStmtWithAccess arrayStmt = (ArrayStmtWithAccess) member;
-                String fieldName = arrayStmt.name().lexeme;
-                TokenType fieldType = arrayStmt.type();
-                fieldTypes.put(fieldName, fieldType);
-                fieldAccess.put(fieldName, arrayStmt.isPublic());
-                
-                // Evaluate and store the initial array value if provided
-                if (!arrayStmt.initialValues().isEmpty())
-                {
-                    try
-                    {
-                        Object[] array = createArrayFromInitialValues(arrayStmt); // Fixed call
-                        initialFieldValues.put(fieldName, array);
-                    } 
-                    catch (Exception e)
-                    {
-                        System.err.println("Warning: Could not evaluate initial array value for field '" + 
-                                         fieldName + "': " + e.getMessage());
-                        initialFieldValues.put(fieldName, getDefaultArrayForType(fieldType));
-                    }
-                } 
-                else
-                {
-                    initialFieldValues.put(fieldName, getDefaultArrayForType(fieldType));
-                }
-            }
-            else if (member instanceof Var)
-            {
-                // Handle variables without explicit access modifier (default to public)
-                Var var = (Var) member;
-                String fieldName = var.name().lexeme;
-                TokenType fieldType = var.name().type;
-                fieldTypes.put(fieldName, fieldType);
-                fieldAccess.put(fieldName, true);
-                
-                // Evaluate and store the initial value if provided
-                if (var.initializer() != null)
-                {
-                    try
-                    {
-                        Object initialValue = evaluate(var.initializer());
-                        initialFieldValues.put(fieldName, initialValue);
-                    } 
-                    catch (Exception e)
-                    {
-                        System.err.println("Warning: Could not evaluate initial value for field '" + 
-                                         fieldName + "': " + e.getMessage());
-                        initialFieldValues.put(fieldName, getDefaultValueForType(fieldType));
-                    }
-                } 
-                else
-                {
-                    initialFieldValues.put(fieldName, getDefaultValueForType(fieldType));
-                }
-            }
-            else if (member instanceof ArrayStmt)
-            {
-                // Handle arrays without explicit access modifier (default to public)
-                ArrayStmt arrayStmt = (ArrayStmt) member;
-                String fieldName = arrayStmt.name().lexeme;
-                TokenType fieldType = arrayStmt.type();
-                fieldTypes.put(fieldName, fieldType);
-                fieldAccess.put(fieldName, true);
-                
-                // Evaluate and store the initial array value if provided
-                if (!arrayStmt.initialValues().isEmpty())
-                {
-                    try
-                    {
-                        Object[] array = createArrayFromInitialValues(arrayStmt); // Fixed call
-                        initialFieldValues.put(fieldName, array);
-                    } 
-                    catch (Exception e)
-                    {
-                        System.err.println("Warning: Could not evaluate initial array value for field '" + 
-                                         fieldName + "': " + e.getMessage());
-                        initialFieldValues.put(fieldName, getDefaultArrayForType(fieldType));
-                    }
-                } 
-                else
-                {
-                    initialFieldValues.put(fieldName, getDefaultArrayForType(fieldType));
-                }
+                initialFieldValues.put(fieldName, getDefaultValueForType(fieldType));
             }
         }
-        
-        ClassDefinition classDef = new ClassDefinition(stmt.name().lexeme, methods, fieldTypes, 
-                                                     methodAccess, fieldAccess);
-        
-        // Store class definition and initial values in environment
-        Token classDefToken = new Token(TokenType.IDENTIFIER, stmt.name().lexeme + "_class", null, stmt.name().line);
-        Token fieldValuesToken = new Token(TokenType.IDENTIFIER, stmt.name().lexeme + "_fields", null, stmt.name().line);
-        Token fieldAccessToken = new Token(TokenType.IDENTIFIER, stmt.name().lexeme + "_access", null, stmt.name().line);
-        
-        environment.define(classDefToken.lexeme, classDef);
-        environment.define(fieldValuesToken.lexeme, initialFieldValues);
-        environment.define(fieldAccessToken.lexeme, fieldAccess);
-        
-        return null;
+        else if (member instanceof ArrayStmtWithAccess)
+        {
+            ArrayStmtWithAccess arrayStmt = (ArrayStmtWithAccess) member;
+            String fieldName = arrayStmt.name().lexeme;
+            TokenType fieldType = arrayStmt.type();
+            fieldTypes.put(fieldName, fieldType);
+            fieldAccess.put(fieldName, arrayStmt.isPublic());
+            
+            // Evaluate and store the initial array value if provided
+            if (!arrayStmt.initialValues().isEmpty())
+            {
+                try
+                {
+                    // Use a temporary environment with global scope to evaluate the initializer
+                    Environment tempEnv = new Environment(getGlobalEnvironment());
+                    
+                    // Store the current environment and switch to temp environment
+                    Environment previousEnv = this.environment;
+                    this.environment = tempEnv;
+                    
+                    try
+                    {
+                        Object[] array = createArrayFromInitialValues(arrayStmt);
+                        initialFieldValues.put(fieldName, array);
+                    }
+                    finally
+                    {
+                        // Restore the original environment
+                        this.environment = previousEnv;
+                    }
+                } 
+                catch (Exception e)
+                {
+                    System.err.println("Warning: Could not evaluate initial array value for field '" + 
+                                     fieldName + "': " + e.getMessage());
+                    initialFieldValues.put(fieldName, getDefaultArrayForType(fieldType));
+                }
+            } 
+            else
+            {
+                initialFieldValues.put(fieldName, getDefaultArrayForType(fieldType));
+            }
+        }
+        else if (member instanceof Var)
+        {
+            // Handle variables without explicit access modifier (default to public)
+            Var var = (Var) member;
+            String fieldName = var.name().lexeme;
+            TokenType fieldType = var.name().type;
+            fieldTypes.put(fieldName, fieldType);
+            fieldAccess.put(fieldName, true);
+            
+            // Evaluate and store the initial value if provided
+            if (var.initializer() != null)
+            {
+                try
+                {
+                    Object initialValue = evaluate(var.initializer());
+                    initialFieldValues.put(fieldName, initialValue);
+                } 
+                catch (Exception e)
+                {
+                    System.err.println("Warning: Could not evaluate initial value for field '" + 
+                                     fieldName + "': " + e.getMessage());
+                    initialFieldValues.put(fieldName, getDefaultValueForType(fieldType));
+                }
+            } 
+            else
+            {
+                initialFieldValues.put(fieldName, getDefaultValueForType(fieldType));
+            }
+        }
+        else if (member instanceof ArrayStmt)
+        {
+            // Handle arrays without explicit access modifier (default to public)
+            ArrayStmt arrayStmt = (ArrayStmt) member;
+            String fieldName = arrayStmt.name().lexeme;
+            TokenType fieldType = arrayStmt.type();
+            fieldTypes.put(fieldName, fieldType);
+            fieldAccess.put(fieldName, true);
+            
+            // Evaluate and store the initial array value if provided
+            if (!arrayStmt.initialValues().isEmpty())
+            {
+                try
+                {
+                    // Use a temporary environment with global scope to evaluate the initializer
+                    Environment tempEnv = new Environment(getGlobalEnvironment());
+                    
+                    // Store the current environment and switch to temp environment
+                    Environment previousEnv = this.environment;
+                    this.environment = tempEnv;
+                    
+                    try
+                    {
+                        Object[] array = createArrayFromInitialValues(arrayStmt);
+                        initialFieldValues.put(fieldName, array);
+                    }
+                    finally
+                    {
+                        // Restore the original environment
+                        this.environment = previousEnv;
+                    }
+                } 
+                catch (Exception e)
+                {
+                    System.err.println("Warning: Could not evaluate initial array value for field '" + 
+                                     fieldName + "': " + e.getMessage());
+                    initialFieldValues.put(fieldName, getDefaultArrayForType(fieldType));
+                }
+            } 
+            else
+            {
+                initialFieldValues.put(fieldName, getDefaultArrayForType(fieldType));
+            }
+        }
     }
+    
+    ClassDefinition classDef = new ClassDefinition(stmt.name().lexeme, methods, fieldTypes, 
+                                                 methodAccess, fieldAccess);
+    
+    // Store class definition and initial values in environment
+    Token classDefToken = new Token(TokenType.IDENTIFIER, stmt.name().lexeme + "_class", null, stmt.name().line);
+    Token fieldValuesToken = new Token(TokenType.IDENTIFIER, stmt.name().lexeme + "_fields", null, stmt.name().line);
+    Token fieldAccessToken = new Token(TokenType.IDENTIFIER, stmt.name().lexeme + "_access", null, stmt.name().line);
+    
+    environment.define(classDefToken.lexeme, classDef);
+    environment.define(fieldValuesToken.lexeme, initialFieldValues);
+    environment.define(fieldAccessToken.lexeme, fieldAccess);
+    
+    return null;
+}
     
 
     // Helper method for visitClassStmt
@@ -5341,7 +5371,7 @@ class Interpreter implements ExprVisitor<Object>, StmtVisitor<Void>
         }
     }
 
-    // Helper method to create array from initial values in class - make it more generic
+    // Helper method to create array from initial values in class - make it more generic(Updated Method)
     private Object[] createArrayFromInitialValues(Stmt arrayStmt)
     {
         TokenType arrayType;
@@ -5352,16 +5382,98 @@ class Interpreter implements ExprVisitor<Object>, StmtVisitor<Void>
             ArrayStmt stmt = (ArrayStmt) arrayStmt;
             arrayType = stmt.type();
             initialValues = stmt.initialValues();
-        } else if (arrayStmt instanceof ArrayStmtWithAccess)
+        } 
+        else if (arrayStmt instanceof ArrayStmtWithAccess)
         {
             ArrayStmtWithAccess stmt = (ArrayStmtWithAccess) arrayStmt;
             arrayType = stmt.type();
             initialValues = stmt.initialValues();
-        } else
+        } 
+        else
         {
             throw new RuntimeException("Expected array statement");
         }
         
+        // Handle the case where there's only one initial value that might be an array
+        if (initialValues.size() == 1)
+        {
+            Object singleValue = evaluate(initialValues.get(0));
+            
+            // If the single value is already an array (from array generator or function return)
+            if (singleValue instanceof Object[])
+            {
+                Object[] sourceArray = (Object[])singleValue;
+                
+                // Convert to the appropriate array type based on the declared type
+                switch (arrayType)
+                {
+                    case INTEGER_ARRAY:
+                        BigDecimal[] intArray = new BigDecimal[sourceArray.length];
+                        for (int i = 0; i < sourceArray.length; i++)
+                        {
+                            Object element = sourceArray[i];
+                            if (element instanceof BigDecimal)
+                            {
+                                intArray[i] = ((BigDecimal)element).setScale(0, RoundingMode.DOWN);
+                            }
+                            else
+                            {
+                                throw new RuntimeException("Integer array can only contain numbers");
+                            }
+                        }
+                        return intArray;
+                        
+                    case FLOAT_ARRAY:
+                        BigDecimal[] floatArray = new BigDecimal[sourceArray.length];
+                        for (int i = 0; i < sourceArray.length; i++)
+                        {
+                            Object element = sourceArray[i];
+                            if (element instanceof BigDecimal)
+                            {
+                                floatArray[i] = (BigDecimal)element;
+                            }
+                            else
+                            {
+                                throw new RuntimeException("Float array can only contain numbers");
+                            }
+                        }
+                        return floatArray;
+                        
+                    case STRING_ARRAY:
+                        String[] stringArray = new String[sourceArray.length];
+                        for (int i = 0; i < sourceArray.length; i++)
+                        {
+                            stringArray[i] = stringify(sourceArray[i]);
+                        }
+                        return stringArray;
+                        
+                    case BOOLEAN_ARRAY:
+                        Boolean[] boolArray = new Boolean[sourceArray.length];
+                        for (int i = 0; i < sourceArray.length; i++)
+                        {
+                            Object element = sourceArray[i];
+                            if (element instanceof Boolean)
+                            {
+                                boolArray[i] = (Boolean)element;
+                            }
+                            else if (element instanceof BigDecimal)
+                            {
+                                boolArray[i] = !((BigDecimal)element).equals(BigDecimal.ZERO);
+                            }
+                            else
+                            {
+                                throw new RuntimeException("Boolean array can only contain booleans or numbers");
+                            }
+                        }
+                        return boolArray;
+                        
+                    default:
+                        throw new RuntimeException("Unknown array type");
+                }
+            }
+        }
+        
+        // Original logic for multiple initial values
         List<Object> values = new Vector<>();
         
         for (Expr initialValue : initialValues)
@@ -5415,20 +5527,32 @@ class Interpreter implements ExprVisitor<Object>, StmtVisitor<Void>
                 
             case BOOLEAN_ARRAY:
                 Boolean[] boolArray = new Boolean[values.size()];
+                boolean showedWarning = false;
+                
                 for (int i = 0; i < values.size(); i++)
                 {
                     Object val = values.get(i);
-                    if (val instanceof Boolean)
+                    
+                    if (val instanceof BigDecimal)
+                    {
+                        if (!showedWarning)
+                        {
+                            System.out.println( "Warning: Auto-converting numbers to booleans (0=false, non-zero=true)" );
+                            showedWarning = true;
+                        }
+                        boolArray[i] = !((BigDecimal)val).equals(BigDecimal.ZERO);
+                    } 
+                    else if (val instanceof Boolean)
                     {
                         boolArray[i] = (Boolean)val;
                     }
-                    else if (val instanceof BigDecimal)
+                    else if (val instanceof String)
                     {
-                        boolArray[i] = !((BigDecimal)val).equals(BigDecimal.ZERO);
+                        throw new RuntimeException("Cannot convert string to boolean in array");
                     }
                     else
                     {
-                        throw new RuntimeException("Boolean array can only contain booleans or numbers");
+                        throw new RuntimeException("Boolean array elements must be numbers or booleans");
                     }
                 }
                 return boolArray;
@@ -5612,7 +5736,7 @@ class Interpreter implements ExprVisitor<Object>, StmtVisitor<Void>
         ClassDefinition classDef = instance.getClassDefinition();
         String methodName = expr.method().lexeme;
         
-        // Check if method is private and we're accessing from outside the class
+        // keep access control checking
         if (classDef.hasMethod(methodName) && !classDef.isMethodPublic(methodName))
         {
             // Check if we're inside a method of the same class
@@ -5649,12 +5773,32 @@ class Interpreter implements ExprVisitor<Object>, StmtVisitor<Void>
         }
         
         Function function = (Function)method;
-        // Ensure "this" is available in the method's environment
-        Environment methodEnv = function.environment();
+        
+        // Get the global environment
+        Environment globalEnv = getGlobalEnvironment();
+        
+        // Create a new environment that chains to global scope
+        Environment methodEnv = new Environment(globalEnv);
+        
+        // Copy the function's bound environment (which includes 'this')
+        if (function.environment() != null)
+        {
+            for (Map.Entry<String, Object> entry : function.environment().values.entrySet())
+            {
+                methodEnv.define(entry.getKey(), entry.getValue());
+            }
+            for (Map.Entry<String, Object[]> entry : function.environment().arrays.entrySet())
+            {
+                methodEnv.defineArray(entry.getKey(), function.environment().getArrayType(entry.getKey()), entry.getValue());
+            }
+        }
+        
+        // Ensure "this" is available
         if (!methodEnv.values.containsKey("this"))
         {
             methodEnv.define("this", instance);
         }
+        
         List<Object> arguments = new Vector<>();
         for (Expr argument : expr.arguments())
         {
@@ -5669,51 +5813,18 @@ class Interpreter implements ExprVisitor<Object>, StmtVisitor<Void>
                                      " for method '" + expr.method().lexeme + "'");
         }
         
-        // Call the method with the bound environment
+        // Call the method with the new environment that has global scope access
         Environment previous = this.environment;
         try
         {
-            // Use the function's bound environment (which includes 'this')
-            this.environment = function.environment();
+            this.environment = methodEnv;
             
             // Set up parameters in the environment
             for (int i = 0; i < function.parameters().size(); i++)
             {
                 Token param = function.parameters().get(i);
                 Object value = arguments.get(i);
-                
-                // Convert value to the correct parameter type
-                switch (param.type)
-                {
-                    case INTEGER:
-                        if (value instanceof BigDecimal)
-                        {
-                            value = ((BigDecimal)value).setScale(0, RoundingMode.DOWN);
-                        } else if (value instanceof Number)
-                        {
-                            value = new BigDecimal(value.toString()).setScale(0, RoundingMode.DOWN);
-                        }
-                        break;
-                    case FLOAT:
-                        if (value instanceof Number && !(value instanceof BigDecimal))
-                        {
-                            value = new BigDecimal(value.toString());
-                        }
-                        break;
-                    case STRING:
-                        value = value.toString();
-                        break;
-                    case BOOLEAN:
-                        if (value instanceof BigDecimal)
-                        {
-                            value = !((BigDecimal)value).equals(BigDecimal.ZERO);
-                        } else if (value instanceof Number)
-                        {
-                            value = ((Number)value).doubleValue() != 0;
-                        }
-                        break;
-                }
-                
+                value = ClassInstance.convertToType(value, param.type);
                 this.environment.define(param.lexeme, value);
             }
             
@@ -5727,7 +5838,18 @@ class Interpreter implements ExprVisitor<Object>, StmtVisitor<Void>
             this.environment = previous;
         }
     }
-
+    
+    // Add this helper method to the Interpreter class
+    private Environment getGlobalEnvironment()
+    {
+        Environment current = this.environment;
+        while (current.enclosing != null)
+        {
+            current = current.enclosing;
+        }
+        return current;
+    }
+    
     
     @Override
     public Object visitClassSelfExpr(ClassSelfExpr expr)
@@ -5939,6 +6061,52 @@ class Interpreter implements ExprVisitor<Object>, StmtVisitor<Void>
         return null;
     }
 
+    private Object callFunction(Function function, List<Object> arguments)
+    {
+        // I'm using the same pattern as in visitCallExpr
+        Environment functionEnv = new Environment(function.environment());
+        
+        // Set up parameters
+        for (int i = 0; i < function.parameters().size(); i++)
+        {
+            Token param = function.parameters().get(i);
+            Object value = arguments.get(i);
+            
+            // Type conversion
+            value = convertToExpectedType(value, param.type);
+            functionEnv.define(param.lexeme, value);
+        }
+        
+        Environment previous = this.environment;
+        try
+        {
+            this.environment = functionEnv;
+            executeBlock(function.body(), this.environment);
+            
+            if (function.returnType().type != TokenType.VOID)
+            {
+                throw new RuntimeException("Function '" + function.name().lexeme + "' must return a value");
+            }
+            return null;
+        } catch (ReturnException returnValue)
+        {
+            // Handle return type checking
+            if (function.returnType().type != TokenType.VOID)
+            {
+                if (returnValue.value == null)
+                {
+                    throw new RuntimeException("Function must return a value");
+                }
+                // Convert return value based on declared return type
+                return convertToExpectedType(returnValue.value, function.returnType().type);
+            }
+            return returnValue.value;
+        } finally
+        {
+            this.environment = previous;
+        }
+    }
+
     @Override
     public Object visitCallExpr(Call expr)
     {
@@ -6133,6 +6301,180 @@ class Interpreter implements ExprVisitor<Object>, StmtVisitor<Void>
                 return resizedArray;
             }
     
+
+            if (functionName.equals("অ্যারে_জেনারেটর"))
+            {
+                if (expr.arguments().size() < 2 || expr.arguments().size() > 3)
+                {
+                    throw new RuntimeException("'অ্যারে_জেনারেটর' expects 2-3 arguments (start, end, [filter])");
+                }
+                
+                Object startObj = evaluate(expr.arguments().get(0));
+                Object endObj = evaluate(expr.arguments().get(1));
+                
+                if (!(startObj instanceof BigDecimal) || !(endObj instanceof BigDecimal))
+                {
+                    throw new RuntimeException("First two arguments must be numbers");
+                }
+                
+                int start = ((BigDecimal)startObj).intValue();
+                int end = ((BigDecimal)endObj).intValue();
+                
+                if (start > end)
+                {
+                    throw new RuntimeException("Start cannot be greater than end");
+                }
+                
+                // If filter expression provided
+                Object filterObj = null;
+                String filterExpr = null;
+                String paramName = "_";
+                boolean isLambdaStyle = false;
+                boolean isFunctionCall = false;
+                boolean isDirectBoolean = false;
+                Object directBooleanValue = null;
+            
+                if (expr.arguments().size() == 3)
+                {
+                    filterObj = evaluate(expr.arguments().get(2));
+                    
+                    // Check the type of filter object
+                    if (filterObj instanceof String) {
+                        // String expression (existing behavior)
+                        filterExpr = (String)filterObj;
+                        
+                        // Check if it's lambda-style: "(n) => n % 2 == 0"
+                        Pattern lambdaPattern = Pattern.compile("\\(\\s*(\\w+)\\s*\\)\\s*=>\\s*(.+)");
+                        Matcher matcher = lambdaPattern.matcher(filterExpr);
+                        
+                        if (matcher.matches())
+                        {
+                            isLambdaStyle = true;
+                            paramName = matcher.group(1);
+                            filterExpr = matcher.group(2);
+                        }
+                    }
+                    else if (filterObj instanceof Boolean)
+                    {
+                        // Direct boolean value
+                        isDirectBoolean = true;
+                        directBooleanValue = filterObj;
+                    }
+                    else if (filterObj instanceof Function)
+                    {
+                        // Function reference
+                        isFunctionCall = true;
+                    }
+                    // Numbers: 0 = false, non-zero = true (C-style logic)
+                    else if (filterObj instanceof BigDecimal)
+                    {
+                        isDirectBoolean = true;
+                        directBooleanValue = !((BigDecimal)filterObj).equals(BigDecimal.ZERO);
+                    }
+                }
+                
+                List<BigDecimal> result = new ArrayList<>();
+                for (int i = start; i <= end; i++)
+                {
+                    BigDecimal current = new BigDecimal(i);
+                    boolean shouldInclude = true;
+                    
+                    if (filterObj != null)
+                    {
+                        if (isDirectBoolean)
+                        {
+                            // Direct boolean: include all if true, include none if false
+                            shouldInclude = (Boolean)directBooleanValue;
+                        }
+                        else if (isFunctionCall)
+                        {
+                            // Function call: call the function with current value
+                            Function function = (Function)filterObj;
+                            
+                            // Create temporary environment for function call
+                            Environment tempEnv = new Environment(environment);
+                            tempEnv.define("_", current);
+                            
+                            Environment previousEnv = this.environment;
+                            try
+                            {
+                                this.environment = tempEnv;
+                                
+                                // Call the function with current value as argument
+                                List<Object> args = Collections.singletonList(current);
+                                Object functionResult = callFunction(function, args);
+                                
+                                // Convert result to boolean (C-style: 0=false, non-zero=true)
+                                if (functionResult instanceof Boolean)
+                                {
+                                    shouldInclude = (Boolean)functionResult;
+                                } else if (functionResult instanceof BigDecimal)
+                                {
+                                    shouldInclude = !((BigDecimal)functionResult).equals(BigDecimal.ZERO);
+                                } else
+                                {
+                                    shouldInclude = isTruthy(functionResult);
+                                }
+                            } finally
+                            {
+                                this.environment = previousEnv;
+                            }
+                        }
+                        else if (isLambdaStyle)
+                        {
+                            // Lambda style with environment
+                            Environment tempEnv = new Environment(environment);
+                            tempEnv.define(paramName, current);
+                            
+                            Environment previousEnv = this.environment;
+                            try
+                            {
+                                this.environment = tempEnv;
+                                
+                                Lexer lexer = new Lexer(filterExpr);
+                                List<Token> tokens = lexer.scanTokens();
+                                Parser parser = new Parser(tokens);
+                                Expr expression = parser.expression();
+                                Object filterResult = evaluate(expression);
+                                
+                                shouldInclude = isTruthy(filterResult);
+                            } catch (Exception e)
+                            {
+                                throw new RuntimeException("Invalid filter expression: " + e.getMessage());
+                            } finally
+                            {
+                                this.environment = previousEnv;
+                            }
+                        }
+                        else
+                        {
+                            // Simple string replacement style
+                            String exprWithValue = filterExpr.replace("_", current.toString());
+                            try
+                            {
+                                Lexer lexer = new Lexer(exprWithValue);
+                                List<Token> tokens = lexer.scanTokens();
+                                Parser parser = new Parser(tokens);
+                                Expr expression = parser.expression();
+                                Object filterResult = evaluate(expression);
+                                
+                                shouldInclude = isTruthy(filterResult);
+                            } catch (Exception e)
+                            {
+                                throw new RuntimeException("Invalid filter expression: " + e.getMessage());
+                            }
+                        }
+                    }
+                    
+                    if (shouldInclude)
+                    {
+                        result.add(current);
+                    }
+                }
+                
+                return result.toArray(new BigDecimal[0]);
+            }
+
             // Handle delete variable
             if (functionName.equals("ভ্যারিয়েবল_মুছো"))
             {
@@ -7204,7 +7546,48 @@ class Interpreter implements ExprVisitor<Object>, StmtVisitor<Void>
                 }
             }
         }
-    
+
+     if (stmt.initialValues().size() == 1 && stmt.initialValues().get(0) instanceof Call)
+    {
+            Call call = (Call) stmt.initialValues().get(0);
+            if (call.callee() instanceof Variable)
+            {
+                Variable callee = (Variable)call.callee();
+                if (callee.name().lexeme.equals("অ্যারে_জেনারেটর"))
+                {
+                    // Evaluate the array generator
+                    Object generatedArray = evaluate(call);
+                    
+                    if (generatedArray instanceof Object[])
+                    {
+                        Object[] genArray = (Object[])generatedArray;
+                        int generatedSize = genArray.length;
+                        
+                        // Check if declared size can hold generated array
+                        if (stmt.size() != null)
+                        {
+                            Object declaredSizeObj = evaluate(stmt.size());
+                            if (declaredSizeObj instanceof BigDecimal)
+                            {
+                                int actualDeclaredSize = ((BigDecimal)declaredSizeObj).intValue();
+                                
+                                if (generatedSize > actualDeclaredSize)
+                                {
+                                    throw new RuntimeException(
+                                        "Array generator produced " + generatedSize + 
+                                        " elements but array '" + stmt.name().lexeme + 
+                                        "' can only hold " + actualDeclaredSize + " elements."
+                                    );
+                                }
+                            }
+                        }
+                        
+                        // Use the generated array
+                        array = genArray;
+                    }
+                }
+            }
+        }
         // Store the array with size information
         environment.defineArray(stmt.name().lexeme, stmt.type(), array, declaredSize == -1);
         return null;
